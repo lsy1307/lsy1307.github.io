@@ -17,7 +17,7 @@
 
 ```html
 <div class="photo-slot">
-  <img src="./assets/images/profile.jpg" alt="익명 프로필 이미지">
+  <img src="./assets/images/article-image.png" alt="기술 글 설명 이미지">
 </div>
 ```
 
@@ -31,7 +31,6 @@
 
 권장 파일:
 
-- `assets/images/profile.jpg` - 익명 프로필 또는 작업 이미지, 세로 4:5
 - `assets/images/about.jpg` - 작업 모습, 가로 3:2
 - `assets/images/k6-before-after.png` - 성능 개선 그래프, 가로 16:9
 - `assets/images/aws-parameter-store.png` - AWS 구성 또는 실행 화면
