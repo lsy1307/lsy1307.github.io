@@ -52,92 +52,143 @@
             <h2>문제를 풀며<br>배운 것들</h2>
           </div>
           <p>
-            결과만 나열하지 않고, 어떤 문제가 있었고 무엇을 비교했으며
-            왜 그 선택을 했는지 기록합니다.
+            프로젝트보다 문제의 성격을 기준으로 분류했습니다.
+            성능과 정합성, 인프라 운영, AI 서빙과 공간 연산, 프론트엔드 설계를 다룹니다.
           </p>
         </div>
-        <div class="post-list">
-          <a class="post-card" href="./posts/jpa-id-reference.html">
-            <span class="post-number">01 / PERFORMANCE</span>
-            <div>
-              <h3>JPA 객체 참조를 ID 기반 조회 구조로 바꾼 이유</h3>
-              <div class="tag-row"><span class="tag">Spring Data JPA</span><span class="tag">k6</span><span class="tag">MySQL</span></div>
+        <div class="writing-groups">
+          <section class="writing-group" aria-labelledby="backend-data-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">01</span>
+              <div class="writing-group-copy">
+                <h3 id="backend-data-title">Backend &amp; Data</h3>
+                <p>성능 병목, 저장소 경계와 트랜잭션 밖의 정합성</p>
+              </div>
+              <span class="writing-group-count">3 POSTS</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./posts/jpa-id-reference.html">
+                <span class="post-number">01 / PERFORMANCE</span>
+                <div>
+                  <h4>JPA 객체 참조를 ID 기반 조회 구조로 바꾼 이유</h4>
+                  <div class="tag-row"><span class="tag">Spring Data JPA</span><span class="tag">k6</span><span class="tag">MySQL</span></div>
+                </div>
+                <p>지원 현황 API의 병목을 찾고 p99를 972ms에서 366ms로 줄인 리팩터링 기록</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./posts/s3-compensation.html">
+                <span class="post-number">05 / CONSISTENCY</span>
+                <div>
+                  <h4>DB 롤백 밖의 S3 보상 삭제</h4>
+                  <div class="tag-row"><span class="tag">Spring Boot</span><span class="tag">S3</span><span class="tag">Compensation</span></div>
+                </div>
+                <p>파일 업로드와 DB 저장 사이의 실패를 보상 삭제로 다루고 원래 예외를 보존한 설계</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./posts/mysql-mongodb-transaction-boundary.html">
+                <span class="post-number">08 / CONSISTENCY</span>
+                <div>
+                  <h4>MySQL과 MongoDB 사이의 트랜잭션 경계</h4>
+                  <div class="tag-row"><span class="tag">MySQL</span><span class="tag">MongoDB</span><span class="tag">Outbox</span></div>
+                </div>
+                <p>공간 데이터 저장소를 분리한 구현에서 부분 실패와 source of truth를 다시 설계한 회고</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
             </div>
-            <p>지원 현황 API의 병목을 찾고 p99를 972ms에서 366ms로 줄인 리팩터링 기록</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/parameter-store.html">
-            <span class="post-number">02 / LOAD TEST</span>
-            <div>
-              <h3>20분 걸리던 부하 테스트 환경 전환 자동화</h3>
-              <div class="tag-row"><span class="tag">Parameter Store</span><span class="tag">Terraform</span><span class="tag">k6</span></div>
+          </section>
+
+          <section class="writing-group" aria-labelledby="infra-operations-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">02</span>
+              <div class="writing-group-copy">
+                <h3 id="infra-operations-title">Infra &amp; Operations</h3>
+                <p>재현 가능한 환경, 설정 수명주기와 되돌릴 수 있는 배포</p>
+              </div>
+              <span class="writing-group-count">3 POSTS</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./posts/parameter-store.html">
+                <span class="post-number">02 / LOAD TEST</span>
+                <div>
+                  <h4>20분 걸리던 부하 테스트 환경 전환 자동화</h4>
+                  <div class="tag-row"><span class="tag">Parameter Store</span><span class="tag">Terraform</span><span class="tag">k6</span></div>
+                </div>
+                <p>설정 외부화와 운영 스냅샷 기반 RDS, 전용 부하 발생기를 하나의 생명주기로 연결한 과정</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./posts/terraform-monitoring.html">
+                <span class="post-number">03 / INFRA</span>
+                <div>
+                  <h4>수동 AWS 인프라에서 Terraform으로</h4>
+                  <div class="tag-row"><span class="tag">Terraform</span><span class="tag">S3 State</span><span class="tag">Modules</span></div>
+                </div>
+                <p>재현성과 변경 추적 문제에서 출발해 환경·모듈·state 경계를 설계한 과정</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./posts/immutable-image-deployment.html">
+                <span class="post-number">09 / DEPLOYMENT</span>
+                <div>
+                  <h4><code>latest</code>로 배포하면 롤백할 수 없는 이유</h4>
+                  <div class="tag-row"><span class="tag">GitHub Actions</span><span class="tag">ECR</span><span class="tag">Elastic Beanstalk</span></div>
+                </div>
+                <p>가변 이미지 태그와 배포 버전의 불일치를 커밋 SHA 기반 불변 배포로 다시 설계한 기록</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
             </div>
-            <p>설정 외부화와 운영 스냅샷 기반 RDS, 전용 부하 발생기를 하나의 생명주기로 연결한 과정</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/terraform-monitoring.html">
-            <span class="post-number">03 / INFRA</span>
-            <div>
-              <h3>수동 AWS 인프라에서 Terraform으로</h3>
-              <div class="tag-row"><span class="tag">Terraform</span><span class="tag">S3 State</span><span class="tag">Modules</span></div>
+          </section>
+
+          <section class="writing-group" aria-labelledby="ai-geospatial-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">03</span>
+              <div class="writing-group-copy">
+                <h3 id="ai-geospatial-title">AI Serving &amp; Geospatial</h3>
+                <p>공간 연산의 비용 모델과 안정적인 모델 서빙</p>
+              </div>
+              <span class="writing-group-count">2 POSTS</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./posts/fastapi-workers.html">
+                <span class="post-number">04 / AI SERVING</span>
+                <div>
+                  <h4>경로 계산 API에 4개의 Worker를 선택한 기준</h4>
+                  <div class="tag-row"><span class="tag">FastAPI</span><span class="tag">Gunicorn</span><span class="tag">OSMnx</span></div>
+                </div>
+                <p>CPU와 메모리를 함께 쓰는 공간 연산을 안정적으로 병렬 처리하기 위한 선택</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./posts/safe-route-edge-weight.html">
+                <span class="post-number">06 / GEOSPATIAL</span>
+                <div>
+                  <h4>CCTV 밀도를 최단 경로의 간선 비용으로 바꾸기</h4>
+                  <div class="tag-row"><span class="tag">OSMnx</span><span class="tag">GeoPandas</span><span class="tag">NetworkX</span></div>
+                </div>
+                <p>Tmap 기준 경로 주변에서 CCTV 공간 조인과 모델 점수로 안전 경로를 재탐색한 과정</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
             </div>
-            <p>재현성과 변경 추적 문제에서 출발해 환경·모듈·state 경계를 설계한 과정</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/fastapi-workers.html">
-            <span class="post-number">04 / AI SERVING</span>
-            <div>
-              <h3>경로 계산 API에 4개의 Worker를 선택한 기준</h3>
-              <div class="tag-row"><span class="tag">FastAPI</span><span class="tag">Gunicorn</span><span class="tag">OSMnx</span></div>
+          </section>
+
+          <section class="writing-group" aria-labelledby="frontend-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">04</span>
+              <div class="writing-group-copy">
+                <h3 id="frontend-title">Frontend</h3>
+                <p>서버 상태와 사용자 입력을 구분하는 화면 상태 설계</p>
+              </div>
+              <span class="writing-group-count">1 POST</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./posts/react-state-retrospective.html">
+                <span class="post-number">07 / FRONTEND</span>
+                <div>
+                  <h4>React 서버 상태 동기화와 검색 상태 설계 회고</h4>
+                  <div class="tag-row"><span class="tag">React</span><span class="tag">Server State</span><span class="tag">Debounce</span></div>
+                </div>
+                <p>댓글 변경 후 재검증과 멤버 검색 구현을 돌아보며 원본·파생 상태의 경계를 다시 설계한 기록</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
             </div>
-            <p>CPU와 메모리를 함께 쓰는 공간 연산을 안정적으로 병렬 처리하기 위한 선택</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/s3-compensation.html">
-            <span class="post-number">05 / CONSISTENCY</span>
-            <div>
-              <h3>DB 롤백 밖의 S3 보상 삭제</h3>
-              <div class="tag-row"><span class="tag">Spring Boot</span><span class="tag">S3</span><span class="tag">Compensation</span></div>
-            </div>
-            <p>파일 업로드와 DB 저장 사이의 실패를 보상 삭제로 다루고 원래 예외를 보존한 설계</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/safe-route-edge-weight.html">
-            <span class="post-number">06 / GEOSPATIAL</span>
-            <div>
-              <h3>CCTV 밀도를 최단 경로의 간선 비용으로 바꾸기</h3>
-              <div class="tag-row"><span class="tag">OSMnx</span><span class="tag">GeoPandas</span><span class="tag">NetworkX</span></div>
-            </div>
-            <p>Tmap 기준 경로 주변에서 CCTV 공간 조인과 모델 점수로 안전 경로를 재탐색한 과정</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/react-state-retrospective.html">
-            <span class="post-number">07 / FRONTEND</span>
-            <div>
-              <h3>React 서버 상태 동기화와 검색 상태 설계 회고</h3>
-              <div class="tag-row"><span class="tag">React</span><span class="tag">Server State</span><span class="tag">Debounce</span></div>
-            </div>
-            <p>댓글 변경 후 재검증과 멤버 검색 구현을 돌아보며 원본·파생 상태의 경계를 다시 설계한 기록</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/mysql-mongodb-transaction-boundary.html">
-            <span class="post-number">08 / CONSISTENCY</span>
-            <div>
-              <h3>MySQL과 MongoDB 사이의 트랜잭션 경계</h3>
-              <div class="tag-row"><span class="tag">MySQL</span><span class="tag">MongoDB</span><span class="tag">Outbox</span></div>
-            </div>
-            <p>공간 데이터 저장소를 분리한 구현에서 부분 실패와 source of truth를 다시 설계한 회고</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="post-card" href="./posts/immutable-image-deployment.html">
-            <span class="post-number">09 / DEPLOYMENT</span>
-            <div>
-              <h3><code>latest</code>로 배포하면 롤백할 수 없는 이유</h3>
-              <div class="tag-row"><span class="tag">GitHub Actions</span><span class="tag">ECR</span><span class="tag">Elastic Beanstalk</span></div>
-            </div>
-            <p>가변 이미지 태그와 배포 버전의 불일치를 커밋 SHA 기반 불변 배포로 다시 설계한 기록</p>
-            <span class="post-arrow" aria-hidden="true">↗</span>
-          </a>
+          </section>
         </div>
       </div>
     </section>
