@@ -30,12 +30,12 @@
         <p>초기에는 자연스러운 모델링이었지만 기능이 늘면서 문제가 선명해졌습니다. 서비스 로직에서 연관 엔티티를 따라가며 불필요한 객체 그래프가 만들어졌고, 조회 방식에 따라 N+1이 발생할 여지도 있었습니다. 한 도메인의 수정이 Entity, Repository, Service, Test로 연쇄 전파돼 기능 하나에 평균 7~9개 파일을 고쳐야 했습니다.</p>
         <div class="callout"><strong>핵심 문제</strong>응답 속도만의 문제가 아니었습니다. 조회 비용과 높은 도메인 결합도가 같은 구조에서 시작되고 있었습니다.</div>
 
-        <h2 id="measurement">먼저 k6로 병목을 확인했다</h2>
+        <h2 id="measurement">k6 기반 병목 확인</h2>
         <p>리팩터링 전에 지원 현황 API를 대상으로 k6 부하 테스트를 진행했습니다. 평균값만으로는 일부 느린 요청을 가릴 수 있어 p99를 기준으로 판단했고, 기존 구조의 p99 응답 시간은 972ms였습니다.</p>
         <figure class="article-photo"><div class="photo-slot small"><span>K6 RESULT IMAGE · 16:9</span></div><figcaption>교체 권장: 리팩터링 전후 k6 결과를 나란히 배치</figcaption></figure>
         <p>프로파일링 결과, 지망별로 반복되는 다중 조회와 연관 객체 탐색이 주요 개선 지점이었습니다. 따라서 단순히 캐시를 추가하기보다 읽기 경로 자체를 줄이는 것이 먼저라고 판단했습니다.</p>
 
-        <h2 id="decision">fetch join만 추가하지 않은 이유</h2>
+        <h2 id="decision">fetch join을 선택하지 않은 이유</h2>
         <p>fetch join은 당장의 N+1을 줄일 수 있지만 엔티티 직접 참조와 서비스 계층의 연쇄 수정 문제는 그대로 남습니다. 조회 성능과 변경 용이성을 함께 개선하려면 참조 방향부터 다시 정리해야 했습니다.</p>
         <ul>
           <li>엔티티 간 직접 참조를 <code>Long id</code> 참조로 전환</li>
@@ -44,7 +44,7 @@
           <li>기존 DTO 형식은 유지해 프론트엔드 영향 최소화</li>
         </ul>
 
-        <h2 id="implementation">조회와 분류의 책임을 나눴다</h2>
+        <h2 id="implementation">조회와 분류 책임 분리</h2>
         <p>지망별 개별 조회를 하나의 일괄 조회로 합치고, 서비스 계층에서 필요한 상태로 분류했습니다. 엔티티는 다른 엔티티의 생명주기에 덜 묶였고, Repository의 쿼리는 어떤 데이터를 가져오는지 더 명시적으로 바뀌었습니다.</p>
         <pre><code>// 개념 예시: 엔티티 자체가 아니라 식별자로 관계를 표현
 class Application {
@@ -59,7 +59,7 @@ applications.stream()
     .collect(groupingBy(Application::getPreference));</code></pre>
         <p>리팩터링 과정에서는 엔티티 생성자, Repository, Service, Test를 함께 동기화했습니다. 응답 계약을 유지했기 때문에 프론트엔드는 별도 수정 없이 새 구조를 사용할 수 있었습니다.</p>
 
-        <h2 id="result">결과: 속도와 변경 비용을 함께 줄였다</h2>
+        <h2 id="result">결과: 응답 시간과 변경 비용 감소</h2>
         <div class="result-box"><div><span>P99 RESPONSE TIME</span><strong>972 → 366ms</strong></div><div><span>IMPROVEMENT</span><strong>약 62%</strong></div><div><span>FILES PER PR</span><strong>40+ → 8~10</strong></div><div><span>FILES PER FEATURE</span><strong>7~9 → 2~3</strong></div></div>
         <p>가장 큰 배움은 성능 문제와 설계 문제가 따로 떨어져 있지 않다는 점이었습니다. 객체 참조가 편한 구간과 조회 목적에 맞는 데이터 흐름이 필요한 구간을 구분하자 응답 속도뿐 아니라 변경 범위도 함께 줄었습니다.</p>
         <a class="next-post" href="./parameter-store.html"><span>NEXT POST</span><strong>환경 전환 20분을 3분으로: 설정 외부화와 자동화 →</strong></a>

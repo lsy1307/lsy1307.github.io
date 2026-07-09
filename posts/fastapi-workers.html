@@ -25,15 +25,15 @@
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#workload">워크로드</a><a href="#architecture">구조</a><a href="#workers">Worker 수</a><a href="#storage">데이터 저장</a><a href="#lesson">회고</a></aside>
       <article class="article-body">
-        <h2 id="workload">일반 CRUD와 다른 요청이었다</h2>
+        <h2 id="workload">일반 CRUD와 다른 워크로드</h2>
         <p>등불은 단순 최단 경로가 아니라 CCTV와 파출소 등 안전 요소를 반영한 우회 경로를 계산합니다. 한 요청 안에서 Tmap 경로 조회, OSM 그래프 생성, CCTV 가중치 적용, shortest path 탐색이 이어집니다.</p>
         <p>OSMnx, GeoPandas, Shapely를 사용하는 공간 연산은 CPU와 메모리를 모두 사용합니다. FastAPI를 단일 프로세스로 실행하면 긴 계산 요청 하나가 뒤의 요청을 지연시킬 수 있었습니다.</p>
 
-        <h2 id="architecture">클라이언트와 계산 책임을 분리했다</h2>
+        <h2 id="architecture">클라이언트와 계산 책임 분리</h2>
         <p>Android 앱은 좌표 요청과 결과 표시에 집중하고, 그래프 연산과 모델 적용은 백엔드의 <code>POST /calculate-route</code>에서 수행하도록 했습니다. 응답에는 Tmap 기본 경로와 안전 우회 경로, 각 경로의 가중치를 함께 담았습니다.</p>
         <figure class="article-photo"><div class="photo-slot small"><span>REQUEST FLOW DIAGRAM · 16:9</span></div><figcaption>교체 권장: Android → API Gateway → FastAPI → Tmap/OSM/CCTV 흐름</figcaption></figure>
 
-        <h2 id="workers">권장 공식보다 실제 리소스가 먼저였다</h2>
+        <h2 id="workers">권장 공식보다 실제 리소스</h2>
         <p>Gunicorn과 UvicornWorker를 사용해 여러 요청을 프로세스 단위로 분산했습니다. 흔히 사용하는 <code>CPU 코어 수 × 2 + 1</code> 공식도 참고했지만, 그대로 적용하지는 않았습니다.</p>
         <p>각 worker가 공간 데이터 라이브러리와 그래프를 메모리에 올리고 CPU 집약적인 계산을 수행하기 때문에 worker 수를 무작정 늘리면 메모리 압박과 컨텍스트 스위칭이 커질 수 있습니다. 컨테이너 자원과 워크로드를 기준으로 4개로 제한했습니다.</p>
         <pre><code>gunicorn app.main:app \
@@ -42,7 +42,7 @@
   --bind 0.0.0.0:8000</code></pre>
         <div class="callout"><strong>선택 기준</strong>최대 worker 수가 아니라, 계산 요청을 병렬 처리하면서도 각 프로세스가 안정적으로 메모리를 확보할 수 있는 수를 선택했습니다.</div>
 
-        <h2 id="storage">인증 사용자와 경로 이력을 연결했다</h2>
+        <h2 id="storage">인증 사용자와 경로 이력 연결</h2>
         <p>Cognito 인증 토큰을 기준으로 사용자를 확인하고 내부 <code>user_id</code>와 매핑했습니다. 계산 요청과 응답은 DynamoDB에 저장해 사용자별 경로 이력을 남겼습니다. 관계형 사용자 정보와 가변적인 경로 데이터를 저장소 특성에 맞게 나눴습니다.</p>
         <ul>
           <li>RDS: 사용자와 서비스의 관계형 정보</li>
@@ -50,9 +50,9 @@
           <li>Cognito: 외부 인증 식별자와 내부 사용자 연결</li>
         </ul>
 
-        <h2 id="lesson">처리량은 프로세스 수 하나로 끝나지 않는다</h2>
+        <h2 id="lesson">프로세스 수만으로 끝나지 않는 처리량 설계</h2>
         <p>4개 worker로 전환해 동시에 들어오는 경로 계산을 분산할 수 있는 구조를 확보했습니다. 다만 worker 수는 고정된 정답이 아닙니다. 이후에는 실제 CPU, 메모리, 응답 시간 지표를 함께 관찰하며 조정해야 합니다. 이번 경험은 비동기 프레임워크를 쓰는 것과 CPU 집약 연산을 병렬화하는 것이 다른 문제라는 점을 분명하게 보여줬습니다.</p>
-        <a class="next-post" href="./s3-compensation.html"><span>NEXT POST</span><strong>DB 롤백으로 S3는 지워지지 않는다 →</strong></a>
+        <a class="next-post" href="./s3-compensation.html"><span>NEXT POST</span><strong>DB 롤백 밖의 S3 보상 삭제 →</strong></a>
       </article>
     </div>
   </main>

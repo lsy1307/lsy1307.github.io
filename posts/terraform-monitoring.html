@@ -25,11 +25,11 @@
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#why">왜 IaC인가</a><a href="#boundary">모듈 경계</a><a href="#network">네트워크</a><a href="#operation">운영</a><a href="#lesson">회고</a></aside>
       <article class="article-body">
-        <h2 id="why">“어떻게 만들었는지”가 서버 안에만 남아 있었다</h2>
+        <h2 id="why">서버 안에만 남은 구성 정보</h2>
         <p>Grafana, Loki, Prometheus 기반 모니터링 서버는 수동 설정에 의존하고 있었습니다. EC2 생성과 Security Group 규칙, Nginx reverse proxy 구성이 콘솔과 서버 내부에 흩어져 재현하기 어려웠습니다.</p>
         <p>당장 동작하는 것과 다시 만들 수 있는 것은 다릅니다. 장애나 이전이 발생했을 때 같은 구성을 복구할 수 있도록 인프라의 현재 상태를 코드로 옮기기로 했습니다.</p>
 
-        <h2 id="boundary">monitoring_stack을 별도 모듈로</h2>
+        <h2 id="boundary">monitoring_stack 모듈 분리</h2>
         <p>애플리케이션 인프라와 관측 인프라는 변경 주기가 다릅니다. 모니터링 구성을 <code>monitoring_stack</code> 모듈로 분리하고 EC2, Security Group, Nginx에 필요한 값을 입력과 출력으로 드러냈습니다.</p>
         <pre><code>module "monitoring_stack" {
   source = "./modules/monitoring-stack"
@@ -40,12 +40,12 @@
 }</code></pre>
         <p>모듈 경계를 나누자 애플리케이션 배포와 모니터링 인프라 변경을 독립적으로 검토할 수 있었습니다. 무엇이 바뀌는지 plan 단계에서 확인할 수 있다는 점도 수동 작업과 큰 차이였습니다.</p>
 
-        <h2 id="network">접근 경로를 명시적으로 만들었다</h2>
+        <h2 id="network">접근 경로의 명시적 정의</h2>
         <p>Security Group 규칙과 Nginx reverse proxy 설정을 코드에 포함했습니다. 외부에 직접 노출할 포트와 내부 컴포넌트 간 통신을 구분하고, 접근 지점을 Nginx로 모았습니다.</p>
         <figure class="article-photo"><div class="photo-slot small"><span>NETWORK DIAGRAM · 16:9</span></div><figcaption>교체 권장: 사용자 → Nginx → Grafana/Loki/Prometheus 흐름</figcaption></figure>
         <div class="callout"><strong>설계 기준</strong>도구를 설치하는 것보다 “누가 어떤 경로로 접근할 수 있는가”를 코드 리뷰에서 확인할 수 있게 하는 데 초점을 맞췄습니다.</div>
 
-        <h2 id="operation">변경은 plan에서 먼저 읽는다</h2>
+        <h2 id="operation">plan 기반 변경 검토</h2>
         <p>이후 인프라 변경은 코드 수정, <code>terraform plan</code> 검토, 적용의 순서로 진행할 수 있게 됐습니다. 수동 설정의 숨은 차이를 줄이고 Git 변경 이력으로 의사결정을 추적할 수 있습니다.</p>
         <ul>
           <li>모니터링 환경을 같은 코드로 다시 생성 가능</li>
@@ -53,7 +53,7 @@
           <li>관측 인프라와 애플리케이션 인프라의 변경 책임 분리</li>
         </ul>
 
-        <h2 id="lesson">IaC는 생성 자동화보다 변경 관리에 가깝다</h2>
+        <h2 id="lesson">생성 자동화보다 변경 관리</h2>
         <p>Terraform을 적용한 가장 큰 이유는 서버 생성 시간을 몇 분 줄이기 위해서가 아니었습니다. 현재 상태와 원하는 상태의 차이를 읽고, 팀이 같은 변경 내용을 검토하게 만드는 것이 핵심이었습니다. 재현 가능성은 그 과정에서 얻은 가장 실질적인 운영 안정성이었습니다.</p>
         <a class="next-post" href="./fastapi-workers.html"><span>NEXT POST</span><strong>경로 계산 API에 4개의 Worker를 선택한 기준 →</strong></a>
       </article>
