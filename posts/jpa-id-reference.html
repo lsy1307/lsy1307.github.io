@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JPA 객체 참조 중심 구조를 ID 기반 조회 구조로 바꿔 p99 응답 시간을 62% 개선한 기록">
+  <title>JPA 객체 참조를 ID 기반 조회 구조로 바꾼 이유 | SYSTEMS.LOG</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#article">본문으로 이동</a>
+  <header class="site-header"><nav class="nav" aria-label="주요 메뉴">
+    <a class="brand" href="../index.html"><span class="brand-mark"></span>SYSTEMS.LOG</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
+    <div class="nav-links" id="nav-links"><a href="../index.html#writing">Writing</a><a href="../index.html#projects">Projects</a><a href="../index.html#about">About</a></div>
+  </nav></header>
+  <main id="article">
+    <header class="article-hero shell">
+      <a class="back-link" href="../index.html#writing">← 모든 글</a>
+      <p class="eyebrow">Performance · Spring Data JPA</p>
+      <h1>JPA 객체 참조를 ID 기반 조회 구조로 바꾼 이유</h1>
+      <p class="article-lead">지원 현황 API의 병목을 측정하고, 도메인 결합도와 조회 비용을 함께 낮춘 리팩터링 기록입니다.</p>
+      <div class="article-meta"><span>PROJECT NOTE</span><span>8 MIN READ</span><span>SOLID CONNECTION</span></div>
+    </header>
+    <div class="article-cover"><div class="photo-slot"><span>PERFORMANCE GRAPH / SCREENSHOT · 16:9</span></div></div>
+    <div class="article-layout">
+      <aside class="toc"><strong>CONTENTS</strong><a href="#problem">문제</a><a href="#measurement">측정</a><a href="#decision">의사결정</a><a href="#implementation">구현</a><a href="#result">결과</a></aside>
+      <article class="article-body">
+        <h2 id="problem">문제: 편리한 참조가 만든 넓은 변경 범위</h2>
+        <p>Solid Connection의 지원 현황 조회는 지원 기간에 트래픽이 집중될 가능성이 큰 API입니다. 기존 <code>Application</code> 도메인은 대학, 학기, 사용자 등 여러 엔티티를 <code>@ManyToOne</code>으로 직접 참조했습니다.</p>
+        <p>초기에는 자연스러운 모델링이었지만 기능이 늘면서 문제가 선명해졌습니다. 서비스 로직에서 연관 엔티티를 따라가며 불필요한 객체 그래프가 만들어졌고, 조회 방식에 따라 N+1이 발생할 여지도 있었습니다. 한 도메인의 수정이 Entity, Repository, Service, Test로 연쇄 전파돼 기능 하나에 평균 7~9개 파일을 고쳐야 했습니다.</p>
+        <div class="callout"><strong>핵심 문제</strong>응답 속도만의 문제가 아니었습니다. 조회 비용과 높은 도메인 결합도가 같은 구조에서 시작되고 있었습니다.</div>
+
+        <h2 id="measurement">먼저 k6로 병목을 확인했다</h2>
+        <p>리팩터링 전에 지원 현황 API를 대상으로 k6 부하 테스트를 진행했습니다. 평균값만으로는 일부 느린 요청을 가릴 수 있어 p99를 기준으로 판단했고, 기존 구조의 p99 응답 시간은 972ms였습니다.</p>
+        <figure class="article-photo"><div class="photo-slot small"><span>K6 RESULT IMAGE · 16:9</span></div><figcaption>교체 권장: 리팩터링 전후 k6 결과를 나란히 배치</figcaption></figure>
+        <p>프로파일링 결과, 지망별로 반복되는 다중 조회와 연관 객체 탐색이 주요 개선 지점이었습니다. 따라서 단순히 캐시를 추가하기보다 읽기 경로 자체를 줄이는 것이 먼저라고 판단했습니다.</p>
+
+        <h2 id="decision">fetch join만 추가하지 않은 이유</h2>
+        <p>fetch join은 당장의 N+1을 줄일 수 있지만 엔티티 직접 참조와 서비스 계층의 연쇄 수정 문제는 그대로 남습니다. 조회 성능과 변경 용이성을 함께 개선하려면 참조 방향부터 다시 정리해야 했습니다.</p>
+        <ul>
+          <li>엔티티 간 직접 참조를 <code>Long id</code> 참조로 전환</li>
+          <li>Repository가 화면 응답에 필요한 식별자를 명시적으로 일괄 조회</li>
+          <li>Service는 조회 결과를 지원 가능·지원 완료·삭제 제외 상태로 분류</li>
+          <li>기존 DTO 형식은 유지해 프론트엔드 영향 최소화</li>
+        </ul>
+
+        <h2 id="implementation">조회와 분류의 책임을 나눴다</h2>
+        <p>지망별 개별 조회를 하나의 일괄 조회로 합치고, 서비스 계층에서 필요한 상태로 분류했습니다. 엔티티는 다른 엔티티의 생명주기에 덜 묶였고, Repository의 쿼리는 어떤 데이터를 가져오는지 더 명시적으로 바뀌었습니다.</p>
+        <pre><code>// 개념 예시: 엔티티 자체가 아니라 식별자로 관계를 표현
+class Application {
+    private Long siteUserId;
+    private Long universityId;
+    private Long semesterId;
+}
+
+// 필요한 데이터를 일괄 조회한 뒤 응답 목적에 맞게 분류
+applications.stream()
+    .filter(applicationPolicy::isVisible)
+    .collect(groupingBy(Application::getPreference));</code></pre>
+        <p>리팩터링 과정에서는 엔티티 생성자, Repository, Service, Test를 함께 동기화했습니다. 응답 계약을 유지했기 때문에 프론트엔드는 별도 수정 없이 새 구조를 사용할 수 있었습니다.</p>
+
+        <h2 id="result">결과: 속도와 변경 비용을 함께 줄였다</h2>
+        <div class="result-box"><div><span>P99 RESPONSE TIME</span><strong>972 → 366ms</strong></div><div><span>IMPROVEMENT</span><strong>약 62%</strong></div><div><span>FILES PER PR</span><strong>40+ → 8~10</strong></div><div><span>FILES PER FEATURE</span><strong>7~9 → 2~3</strong></div></div>
+        <p>가장 큰 배움은 성능 문제와 설계 문제가 따로 떨어져 있지 않다는 점이었습니다. 객체 참조가 편한 구간과 조회 목적에 맞는 데이터 흐름이 필요한 구간을 구분하자 응답 속도뿐 아니라 변경 범위도 함께 줄었습니다.</p>
+        <a class="next-post" href="./parameter-store.html"><span>NEXT POST</span><strong>환경 전환 20분을 3분으로: 설정 외부화와 자동화 →</strong></a>
+      </article>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> SYSTEMS.LOG</span><span>Backend · Infra · Operations</span></div></footer>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

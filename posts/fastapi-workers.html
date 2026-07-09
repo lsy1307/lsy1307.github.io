@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="공간 데이터 기반 AI 경로 계산 API에 Gunicorn UvicornWorker 4개를 선택한 기준">
+  <title>경로 계산 API에 4개의 Worker를 선택한 기준 | SYSTEMS.LOG</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#article">본문으로 이동</a>
+  <header class="site-header"><nav class="nav" aria-label="주요 메뉴">
+    <a class="brand" href="../index.html"><span class="brand-mark"></span>SYSTEMS.LOG</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
+    <div class="nav-links" id="nav-links"><a href="../index.html#writing">Writing</a><a href="../index.html#projects">Projects</a><a href="../index.html#about">About</a></div>
+  </nav></header>
+  <main id="article">
+    <header class="article-hero shell">
+      <a class="back-link" href="../index.html#writing">← 모든 글</a>
+      <p class="eyebrow">AI Serving · FastAPI</p>
+      <h1>경로 계산 API에 4개의 Worker를 선택한 기준</h1>
+      <p class="article-lead">Tmap, OSM, CCTV 데이터와 공간 연산을 함께 처리하는 API를 멀티프로세스로 전환하며 처리량과 배포 안정성 사이의 기준을 세운 경험입니다.</p>
+      <div class="article-meta"><span>PROJECT NOTE</span><span>7 MIN READ</span><span>등불</span></div>
+    </header>
+    <div class="article-cover"><div class="photo-slot"><span>ROUTE MAP / SERVICE SCREEN · 16:9</span></div></div>
+    <div class="article-layout">
+      <aside class="toc"><strong>CONTENTS</strong><a href="#workload">워크로드</a><a href="#architecture">구조</a><a href="#workers">Worker 수</a><a href="#storage">데이터 저장</a><a href="#lesson">회고</a></aside>
+      <article class="article-body">
+        <h2 id="workload">일반 CRUD와 다른 요청이었다</h2>
+        <p>등불은 단순 최단 경로가 아니라 CCTV와 파출소 등 안전 요소를 반영한 우회 경로를 계산합니다. 한 요청 안에서 Tmap 경로 조회, OSM 그래프 생성, CCTV 가중치 적용, shortest path 탐색이 이어집니다.</p>
+        <p>OSMnx, GeoPandas, Shapely를 사용하는 공간 연산은 CPU와 메모리를 모두 사용합니다. FastAPI를 단일 프로세스로 실행하면 긴 계산 요청 하나가 뒤의 요청을 지연시킬 수 있었습니다.</p>
+
+        <h2 id="architecture">클라이언트와 계산 책임을 분리했다</h2>
+        <p>Android 앱은 좌표 요청과 결과 표시에 집중하고, 그래프 연산과 모델 적용은 백엔드의 <code>POST /calculate-route</code>에서 수행하도록 했습니다. 응답에는 Tmap 기본 경로와 안전 우회 경로, 각 경로의 가중치를 함께 담았습니다.</p>
+        <figure class="article-photo"><div class="photo-slot small"><span>REQUEST FLOW DIAGRAM · 16:9</span></div><figcaption>교체 권장: Android → API Gateway → FastAPI → Tmap/OSM/CCTV 흐름</figcaption></figure>
+
+        <h2 id="workers">권장 공식보다 실제 리소스가 먼저였다</h2>
+        <p>Gunicorn과 UvicornWorker를 사용해 여러 요청을 프로세스 단위로 분산했습니다. 흔히 사용하는 <code>CPU 코어 수 × 2 + 1</code> 공식도 참고했지만, 그대로 적용하지는 않았습니다.</p>
+        <p>각 worker가 공간 데이터 라이브러리와 그래프를 메모리에 올리고 CPU 집약적인 계산을 수행하기 때문에 worker 수를 무작정 늘리면 메모리 압박과 컨텍스트 스위칭이 커질 수 있습니다. 컨테이너 자원과 워크로드를 기준으로 4개로 제한했습니다.</p>
+        <pre><code>gunicorn app.main:app \
+  --workers 4 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:8000</code></pre>
+        <div class="callout"><strong>선택 기준</strong>최대 worker 수가 아니라, 계산 요청을 병렬 처리하면서도 각 프로세스가 안정적으로 메모리를 확보할 수 있는 수를 선택했습니다.</div>
+
+        <h2 id="storage">인증 사용자와 경로 이력을 연결했다</h2>
+        <p>Cognito 인증 토큰을 기준으로 사용자를 확인하고 내부 <code>user_id</code>와 매핑했습니다. 계산 요청과 응답은 DynamoDB에 저장해 사용자별 경로 이력을 남겼습니다. 관계형 사용자 정보와 가변적인 경로 데이터를 저장소 특성에 맞게 나눴습니다.</p>
+        <ul>
+          <li>RDS: 사용자와 서비스의 관계형 정보</li>
+          <li>DynamoDB: 좌표 배열과 계산 결과처럼 구조가 큰 경로 이력</li>
+          <li>Cognito: 외부 인증 식별자와 내부 사용자 연결</li>
+        </ul>
+
+        <h2 id="lesson">처리량은 프로세스 수 하나로 끝나지 않는다</h2>
+        <p>4개 worker로 전환해 동시에 들어오는 경로 계산을 분산할 수 있는 구조를 확보했습니다. 다만 worker 수는 고정된 정답이 아닙니다. 이후에는 실제 CPU, 메모리, 응답 시간 지표를 함께 관찰하며 조정해야 합니다. 이번 경험은 비동기 프레임워크를 쓰는 것과 CPU 집약 연산을 병렬화하는 것이 다른 문제라는 점을 분명하게 보여줬습니다.</p>
+        <a class="next-post" href="../index.html#projects"><span>EXPLORE MORE</span><strong>다른 프로젝트 보기 →</strong></a>
+      </article>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> SYSTEMS.LOG</span><span>Backend · Infra · Operations</span></div></footer>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>
