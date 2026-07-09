@@ -38,6 +38,7 @@
 - `assets/images/monitoring-dashboard.png` - Grafana 대시보드
 - `assets/images/route-service.png` - 등불 서비스 화면 또는 경로 지도
 - `assets/images/route-weight.png` - CCTV 공간 조인 또는 간선 가중치 시각화
+- `assets/images/react-state-flow.png` - 댓글 재검증 또는 검색 상태 흐름
 
 ## 개인정보
 
