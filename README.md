@@ -37,6 +37,7 @@
 - `assets/images/aws-parameter-store.png` - AWS 구성 또는 실행 화면
 - `assets/images/monitoring-dashboard.png` - Grafana 대시보드
 - `assets/images/route-service.png` - 등불 서비스 화면 또는 경로 지도
+- `assets/images/route-weight.png` - CCTV 공간 조인 또는 간선 가중치 시각화
 
 ## 개인정보
 

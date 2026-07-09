@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Grafana, Loki, Prometheus 모니터링 서버를 Terraform 코드로 옮긴 기록">
-  <title>수동 모니터링 서버를 Terraform으로 | SYSTEMS.LOG</title>
+  <meta name="description" content="수동 AWS 인프라의 재현성과 변경 추적 문제를 해결하기 위해 Terraform을 도입하고 환경과 모듈 경계를 설계한 기록">
+  <title>수동 AWS 인프라에서 Terraform으로 | SYSTEMS.LOG</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
@@ -16,46 +16,72 @@
   <main id="article">
     <header class="article-hero shell">
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
-      <p class="eyebrow">Infrastructure as Code</p>
-      <h1>수동 모니터링 서버를 재현 가능한 코드로 옮기기</h1>
-      <p class="article-lead">EC2, Security Group, Nginx와 관측 도구 구성을 Terraform 모듈로 분리해 변경 범위를 명확하게 만든 경험입니다.</p>
-      <div class="article-meta"><span>PROJECT NOTE</span><span>6 MIN READ</span><span>SOLID CONNECTION</span></div>
+      <p class="eyebrow">Terraform · Infrastructure as Code</p>
+      <h1>수동 AWS 인프라에서 Terraform으로</h1>
+      <p class="article-lead">콘솔과 서버 내부에 흩어진 설정을 코드 리뷰 가능한 변경으로 옮기기 위해 Terraform을 선택하고, 환경·모듈·상태의 경계를 나눈 과정입니다.</p>
+      <div class="article-meta"><span>PROJECT NOTE</span><span>10 MIN READ</span><span>SOLID CONNECTION</span></div>
     </header>
-    <div class="article-cover"><div class="photo-slot"><span>GRAFANA DASHBOARD / ARCHITECTURE · 16:9</span></div></div>
+    <div class="article-cover"><div class="photo-slot"><span>TERRAFORM MODULE MAP · 16:9</span></div></div>
     <div class="article-layout">
-      <aside class="toc"><strong>CONTENTS</strong><a href="#why">왜 IaC인가</a><a href="#boundary">모듈 경계</a><a href="#network">네트워크</a><a href="#operation">운영</a><a href="#lesson">회고</a></aside>
+      <aside class="toc"><strong>CONTENTS</strong><a href="#background">도입 배경</a><a href="#choice">선택 기준</a><a href="#boundary">환경 경계</a><a href="#module">모듈 경계</a><a href="#migration">점진적 전환</a><a href="#limits">한계</a></aside>
       <article class="article-body">
-        <h2 id="why">서버 안에만 남은 구성 정보</h2>
-        <p>Grafana, Loki, Prometheus 기반 모니터링 서버는 수동 설정에 의존하고 있었습니다. EC2 생성과 Security Group 규칙, Nginx reverse proxy 구성이 콘솔과 서버 내부에 흩어져 재현하기 어려웠습니다.</p>
-        <p>당장 동작하는 것과 다시 만들 수 있는 것은 다릅니다. 장애나 이전이 발생했을 때 같은 구성을 복구할 수 있도록 인프라의 현재 상태를 코드로 옮기기로 했습니다.</p>
+        <h2 id="background">동작하지만 재현할 수 없는 인프라</h2>
+        <p>초기 AWS 환경은 콘솔에서 EC2와 Security Group을 만들고, 서버에 접속해 Docker와 Nginx를 설정하는 방식이었습니다. 서비스는 동작했지만 현재 구성이 왜 그렇게 되었는지, 다른 환경에 같은 구성을 만들려면 무엇이 필요한지 한눈에 알기 어려웠습니다.</p>
+        <p>운영 이슈가 생길 때마다 콘솔의 현재 값과 서버 내부 파일, 팀원의 기억을 함께 확인해야 했습니다. stage와 prod가 비슷해 보여도 작은 설정 차이가 누적됐고, 변경 전후를 PR에서 검토할 수도 없었습니다.</p>
+        <div class="callout"><strong>도입 목적</strong>리소스 생성 자동화보다 재현 가능한 현재 상태, 변경 전 diff, 환경 간 차이의 명시적 관리가 먼저였습니다.</div>
 
-        <h2 id="boundary">monitoring_stack 모듈 분리</h2>
-        <p>애플리케이션 인프라와 관측 인프라는 변경 주기가 다릅니다. 모니터링 구성을 <code>monitoring_stack</code> 모듈로 분리하고 EC2, Security Group, Nginx에 필요한 값을 입력과 출력으로 드러냈습니다.</p>
-        <pre><code>module "monitoring_stack" {
-  source = "./modules/monitoring-stack"
-
-  vpc_id          = module.network.vpc_id
-  public_subnet_id = module.network.public_subnet_id
-  instance_type    = var.monitoring_instance_type
-}</code></pre>
-        <p>모듈 경계를 나누자 애플리케이션 배포와 모니터링 인프라 변경을 독립적으로 검토할 수 있었습니다. 무엇이 바뀌는지 plan 단계에서 확인할 수 있다는 점도 수동 작업과 큰 차이였습니다.</p>
-
-        <h2 id="network">접근 경로의 명시적 정의</h2>
-        <p>Security Group 규칙과 Nginx reverse proxy 설정을 코드에 포함했습니다. 외부에 직접 노출할 포트와 내부 컴포넌트 간 통신을 구분하고, 접근 지점을 Nginx로 모았습니다.</p>
-        <figure class="article-photo"><div class="photo-slot small"><span>NETWORK DIAGRAM · 16:9</span></div><figcaption>교체 권장: 사용자 → Nginx → Grafana/Loki/Prometheus 흐름</figcaption></figure>
-        <div class="callout"><strong>설계 기준</strong>도구를 설치하는 것보다 “누가 어떤 경로로 접근할 수 있는가”를 코드 리뷰에서 확인할 수 있게 하는 데 초점을 맞췄습니다.</div>
-
-        <h2 id="operation">plan 기반 변경 검토</h2>
-        <p>이후 인프라 변경은 코드 수정, <code>terraform plan</code> 검토, 적용의 순서로 진행할 수 있게 됐습니다. 수동 설정의 숨은 차이를 줄이고 Git 변경 이력으로 의사결정을 추적할 수 있습니다.</p>
+        <h2 id="choice">명령 모음보다 선언적 상태</h2>
+        <p>AWS CLI 스크립트도 반복 작업을 줄일 수 있지만 이미 존재하는 리소스와 원하는 상태의 차이를 지속적으로 관리하기 어렵습니다. Terraform은 리소스 의존성을 그래프로 계산하고, <code>plan</code>에서 변경 범위를 먼저 보여준다는 점이 요구사항과 맞았습니다.</p>
         <ul>
-          <li>모니터링 환경을 같은 코드로 다시 생성 가능</li>
-          <li>리소스 변경 범위를 적용 전에 확인</li>
-          <li>관측 인프라와 애플리케이션 인프라의 변경 책임 분리</li>
+          <li>현재 코드와 실제 리소스의 차이를 plan에서 확인</li>
+          <li>EC2·RDS·Security Group·S3·Lambda의 의존 순서 계산</li>
+          <li>Git 변경 이력과 PR을 통한 인프라 의사결정 추적</li>
+          <li>공통 모듈과 환경별 입력값을 통한 중복 감소</li>
         </ul>
+        <p>목표는 모든 운영 명령을 Terraform 안에 넣는 것이 아니라, 수명주기와 의존성을 관리해야 하는 리소스를 선언적 상태로 옮기는 것이었습니다.</p>
 
-        <h2 id="lesson">생성 자동화보다 변경 관리</h2>
-        <p>Terraform을 적용한 가장 큰 이유는 서버 생성 시간을 몇 분 줄이기 위해서가 아니었습니다. 현재 상태와 원하는 상태의 차이를 읽고, 팀이 같은 변경 내용을 검토하게 만드는 것이 핵심이었습니다. 재현 가능성은 그 과정에서 얻은 가장 실질적인 운영 안정성이었습니다.</p>
-        <a class="next-post" href="./fastapi-workers.html"><span>NEXT POST</span><strong>경로 계산 API에 4개의 Worker를 선택한 기준 →</strong></a>
+        <h2 id="boundary">환경별 root module과 state 분리</h2>
+        <p>prod, stage, monitoring, load_test, global을 각각 독립된 root module로 나눴습니다. 모든 환경을 하나의 거대한 state에 넣으면 작은 변경도 전체 인프라의 blast radius를 넓히기 때문입니다.</p>
+        <pre><code>environment/
+├── prod/
+├── stage/
+├── monitoring/
+├── load_test/
+└── global/</code></pre>
+        <p>state는 암호화된 S3 backend에 환경별 key로 분리하고 lockfile을 사용했습니다.</p>
+        <pre><code>backend "s3" {
+  bucket       = "…-tfstate"
+  key          = "env/prod/terraform.tfstate"
+  use_lockfile = true
+  encrypt      = true
+}</code></pre>
+        <p>이 구조에서는 monitoring 변경이 prod state를 잠그지 않고, load_test 환경은 독립적으로 생성·삭제할 수 있습니다. state 경계가 곧 변경 책임과 장애 영향 범위의 경계가 됐습니다.</p>
+
+        <h2 id="module">변경 이유에 따른 모듈 경계</h2>
+        <p>환경 디렉터리가 “어디에 적용하는가”를 표현한다면 모듈은 “무엇이 함께 바뀌는가”를 표현하도록 나눴습니다.</p>
+        <ul>
+          <li><code>app_stack</code> — prod·stage가 공유하는 EC2, RDS, Security Group과 서버 초기화</li>
+          <li><code>monitoring_stack</code> — Grafana·Loki·Prometheus 서버와 접근 경로</li>
+          <li><code>shared_resources</code> — 환경을 가로질러 공유하는 S3, CloudFront, Lambda, ACM</li>
+        </ul>
+        <p>prod와 stage는 같은 <code>app_stack</code>을 사용하되 인스턴스 크기, ingress 규칙, 도메인과 RDS 설정을 입력값으로 분리했습니다. 복사된 리소스 정의가 서로 다른 방향으로 변하는 drift를 줄이기 위한 구조입니다.</p>
+        <figure class="article-photo"><div class="photo-slot small"><span>ROOT MODULE → SHARED MODULES · 16:9</span></div><figcaption>교체 권장: 환경 root와 app_stack·monitoring_stack·shared_resources 관계</figcaption></figure>
+
+        <h2 id="migration">모니터링 환경부터 점진적 전환</h2>
+        <p>첫 전환 대상은 Grafana, Loki, Prometheus 기반 모니터링 서버였습니다. EC2, Security Group, Nginx reverse proxy 구성이 수동 설정에 의존했지만 애플리케이션 데이터 경로와는 분리되어 있어 Terraform 도입을 검증하기 좋은 경계였습니다.</p>
+        <p>이후 prod·stage의 공통 애플리케이션 스택과 S3·Lambda 같은 공유 리소스로 범위를 확장했습니다. 처음부터 모든 리소스를 한 번에 import하기보다 독립된 환경에서 module과 state 운영 방식을 검증한 뒤 넓혔습니다.</p>
+        <p>서버 내부 설정은 두 단계로 나눴습니다. Docker 같은 최초 부팅 작업은 cloud-init으로 처리하고, Nginx·관측 에이전트 설정은 템플릿 hash 변경을 감지해 SSM RunCommand로 반영했습니다. 설정 하나 때문에 EC2가 교체되지 않도록 인스턴스 생명주기와 구성 변경을 분리했습니다.</p>
+
+        <h2 id="limits">IaC 이후에도 남는 운영 판단</h2>
+        <p>Terraform 도입이 수동 작업을 완전히 없애지는 않았습니다. 기존 리소스 import, state와 실제 리소스의 drift, provider 업그레이드, 삭제 가능한 환경과 보호해야 할 환경의 정책은 계속 관리해야 합니다.</p>
+        <ul>
+          <li>secret 값은 코드가 아닌 Parameter Store에서 조회</li>
+          <li><code>plan</code> 결과를 적용 전 검토하는 배포 규칙 필요</li>
+          <li><code>ignore_changes</code>는 책임 분리와 drift 은폐 사이의 판단 필요</li>
+          <li>SSM과 local-exec 같은 명령형 경계는 실패·timeout 처리 필요</li>
+        </ul>
+        <p>Terraform의 가장 큰 효과는 “버튼을 누르지 않게 된 것”이 아니라 인프라 변경을 설명하고 검토할 수 있게 된 것이었습니다. 재현 가능성과 변경 추적은 코드 작성만으로 생기지 않고, state와 모듈 경계를 함께 설계할 때 만들어졌습니다.</p>
+        <a class="next-post" href="./fastapi-workers.html"><span>NEXT POST</span><strong>경로 계산 API의 4 Worker 선택 기준 →</strong></a>
       </article>
     </div>
   </main>
