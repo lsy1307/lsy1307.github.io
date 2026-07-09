@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Java List, Set, Map 선택 기준과 Stream 사용 기준을 정리한 기본 공부 노트">
+  <title>List, Set, Map을 고르는 기준 | lsy1307 기술 블로그</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#article">본문으로 이동</a>
+  <header class="site-header"><nav class="nav" aria-label="주요 메뉴">
+    <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
+    <div class="nav-links" id="nav-links"><a href="../spring-study.html">공부 노트</a><a href="../index.html">Home</a></div>
+  </nav></header>
+  <main id="article">
+    <header class="article-hero shell">
+      <a class="back-link" href="../spring-study.html">← Java Spring 공부</a>
+      <p class="eyebrow">Java basic · Collection</p>
+      <h1>List, Set, Map을 고르는 기준</h1>
+      <p class="article-lead">컬렉션은 익숙한 구현체를 고르는 문제가 아니라, 순서·중복·조회 방식 중 무엇이 중요한지 결정하는 문제입니다.</p>
+      <div class="article-meta"><span>STUDY NOTE</span><span>5 MIN READ</span><span>JAVA</span></div>
+    </header>
+    <div class="article-layout">
+      <aside class="toc"><strong>CONTENTS</strong><a href="#criteria">선택 기준</a><a href="#list">List</a><a href="#set">Set</a><a href="#map">Map</a><a href="#stream">Stream</a></aside>
+      <article class="article-body">
+        <h2 id="criteria">먼저 질문할 것</h2>
+        <p>컬렉션을 고르기 전에 세 가지를 먼저 봅니다. 순서가 중요한가, 중복을 허용할 것인가, 특정 key로 빠르게 찾아야 하는가. 이 질문에 따라 자연스럽게 선택지가 좁아집니다.</p>
+        <ul>
+          <li>순서대로 처리해야 한다면 <code>List</code></li>
+          <li>중복을 막아야 한다면 <code>Set</code></li>
+          <li>key로 값을 찾는다면 <code>Map</code></li>
+        </ul>
+
+        <h2 id="list"><code>List</code>: 순서와 인덱스가 중요할 때</h2>
+        <p><code>ArrayList</code>는 가장 흔하게 쓰는 List 구현체입니다. 데이터가 들어온 순서를 유지하고, 인덱스로 접근할 수 있습니다. API 응답에서 화면에 보여줄 순서를 유지하거나, 정렬된 결과를 그대로 넘길 때 적합합니다.</p>
+        <pre><code>List&lt;String&gt; names = new ArrayList&lt;&gt;();
+names.add("java");
+names.add("spring");
+
+String first = names.get(0);</code></pre>
+        <p>다만 특정 값이 포함되어 있는지 자주 확인해야 한다면 <code>List.contains</code>는 처음부터 끝까지 훑을 수 있습니다. 이런 경우에는 <code>Set</code>이 더 나을 수 있습니다.</p>
+
+        <h2 id="set"><code>Set</code>: 중복 제거와 포함 여부 확인</h2>
+        <p><code>HashSet</code>은 중복을 허용하지 않고, 포함 여부 확인에 강합니다. 예를 들어 이미 처리한 ID인지 확인하거나, 중복된 태그를 제거할 때 사용할 수 있습니다.</p>
+        <pre><code>Set&lt;Long&gt; processedIds = new HashSet&lt;&gt;();
+
+if (processedIds.add(memberId)) {
+    // 처음 보는 memberId일 때만 처리
+}</code></pre>
+        <p><code>Set</code>이 제대로 동작하려면 객체의 <code>equals</code>, <code>hashCode</code> 기준이 중요합니다. 특히 직접 만든 객체를 Set에 넣는다면 동등성 기준을 점검해야 합니다.</p>
+
+        <h2 id="map"><code>Map</code>: key로 바로 찾기</h2>
+        <p><code>Map</code>은 key와 value를 함께 저장합니다. DB에서 가져온 결과를 ID 기준으로 묶어두고, 이후 로직에서 빠르게 찾아야 할 때 자주 씁니다.</p>
+        <pre><code>Map&lt;Long, Member&gt; memberById = members.stream()
+    .collect(Collectors.toMap(Member::getId, member -&gt; member));
+
+Member writer = memberById.get(writerId);</code></pre>
+        <p>같은 key가 두 번 들어올 수 있다면 병합 규칙을 정해야 합니다. 이 규칙 없이 <code>toMap</code>을 쓰면 중복 key에서 예외가 날 수 있습니다.</p>
+
+        <h2 id="stream">Stream은 반복문 대체가 아니라 데이터 흐름 표현</h2>
+        <p>Stream은 컬렉션을 필터링하고 변환하고 모으는 흐름을 잘 드러냅니다. 다만 중간에 외부 상태를 바꾸거나 예외 처리가 복잡해진다면 평범한 반복문이 더 읽기 쉬울 수 있습니다.</p>
+        <pre><code>List&lt;String&gt; activeNames = members.stream()
+    .filter(Member::isActive)
+    .map(Member::getName)
+    .toList();</code></pre>
+        <div class="callout"><strong>기준</strong>Stream을 썼을 때 “무엇을 걸러서 무엇으로 바꾸는지”가 바로 보이면 좋고, 디버깅 흐름이 꼬이면 반복문으로 내리는 편이 낫습니다.</div>
+        <a class="next-post" href="./spring-ioc-di.html"><span>NEXT NOTE</span><strong>Spring IoC와 DI가 하는 일 →</strong></a>
+      </article>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> lsy1307 · TECH BLOG</span><span>Java · Spring Study Notes</span></div></footer>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

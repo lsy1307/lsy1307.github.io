@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="메인 글 목록에는 노출하지 않는 Java Spring 기본 공부 노트 모음입니다.">
+  <title>Java Spring 공부 | lsy1307 기술 블로그</title>
+  <link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">본문으로 이동</a>
+  <header class="site-header">
+    <nav class="nav" aria-label="주요 메뉴">
+      <a class="brand" href="./index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
+      <div class="nav-links" id="nav-links">
+        <a href="./index.html">Home</a>
+        <a href="https://github.com/lsy1307" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="content">
+    <header class="article-hero shell">
+      <a class="back-link" href="./index.html">← 홈으로</a>
+      <p class="eyebrow">Study notes · Java Spring</p>
+      <h1>Java Spring 공부</h1>
+      <p class="article-lead">
+        프로젝트 회고 글과 분리해 둔 기본 개념 노트입니다.
+        면접용 암기보다 실제 코드를 읽고 고칠 때 헷갈리지 않는 기준을 정리합니다.
+      </p>
+      <div class="article-meta"><span>BASIC NOTES</span><span>HIDDEN FROM MAIN</span><span>JAVA · SPRING</span></div>
+    </header>
+
+    <section class="section compact-section">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Index</p>
+            <h2>기본기를<br>작게 쪼개기</h2>
+          </div>
+          <p>
+            이 페이지는 메인 Writing 영역에 노출하지 않는 별도 공부 공간입니다.
+            한 번에 깊게 들어가기보다, 자주 헷갈리는 기준을 짧게 확인할 수 있게 구성했습니다.
+          </p>
+        </div>
+
+        <div class="writing-groups">
+          <section class="writing-group" aria-labelledby="java-basic-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">01</span>
+              <div class="writing-group-copy">
+                <h3 id="java-basic-title">Java Basic</h3>
+                <p>객체, 참조, 컬렉션처럼 Spring 코드를 읽기 전에 먼저 잡아야 하는 기준</p>
+              </div>
+              <span class="writing-group-count">2 NOTES</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./study/java-object-equality.html">
+                <span class="post-number">01 / JAVA</span>
+                <div>
+                  <h4>Java 객체, 참조, equals/hashCode 기본</h4>
+                  <div class="tag-row"><span class="tag">Reference</span><span class="tag">String</span><span class="tag">equals</span></div>
+                </div>
+                <p>값을 비교하는 코드와 같은 객체를 가리키는 코드를 구분하는 기준</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/java-collections.html">
+                <span class="post-number">02 / JAVA</span>
+                <div>
+                  <h4>List, Set, Map을 고르는 기준</h4>
+                  <div class="tag-row"><span class="tag">Collection</span><span class="tag">HashMap</span><span class="tag">Stream</span></div>
+                </div>
+                <p>자료구조 선택을 “그냥 익숙해서”가 아니라 조회·중복·순서 기준으로 결정하기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </section>
+
+          <section class="writing-group" aria-labelledby="spring-basic-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">02</span>
+              <div class="writing-group-copy">
+                <h3 id="spring-basic-title">Spring Basic</h3>
+                <p>Spring이 객체를 만들고, 요청을 보내고, 트랜잭션을 묶는 방식</p>
+              </div>
+              <span class="writing-group-count">3 NOTES</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./study/spring-ioc-di.html">
+                <span class="post-number">03 / SPRING</span>
+                <div>
+                  <h4>Spring IoC와 DI가 하는 일</h4>
+                  <div class="tag-row"><span class="tag">IoC</span><span class="tag">DI</span><span class="tag">Bean</span></div>
+                </div>
+                <p>객체 생성 책임을 Spring에게 넘기면 테스트와 변경이 왜 쉬워지는지 정리</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/spring-mvc-flow.html">
+                <span class="post-number">04 / SPRING MVC</span>
+                <div>
+                  <h4>요청이 Controller까지 도착하는 흐름</h4>
+                  <div class="tag-row"><span class="tag">DispatcherServlet</span><span class="tag">DTO</span><span class="tag">Validation</span></div>
+                </div>
+                <p>HTTP 요청이 컨트롤러, 서비스, 응답으로 이어지는 기본 경로</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/spring-jpa-transaction.html">
+                <span class="post-number">05 / JPA</span>
+                <div>
+                  <h4>트랜잭션과 JPA 영속성 컨텍스트 기본</h4>
+                  <div class="tag-row"><span class="tag">Transaction</span><span class="tag">Persistence Context</span><span class="tag">N+1</span></div>
+                </div>
+                <p>왜 서비스 계층에서 트랜잭션을 잡고, 변경 감지와 지연 로딩을 조심해야 하는지</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <span>© <span data-year></span> lsy1307 · TECH BLOG</span>
+      <span>Java · Spring Study Notes</span>
+    </div>
+  </footer>
+  <script src="./assets/js/main.js"></script>
+</body>
+</html>

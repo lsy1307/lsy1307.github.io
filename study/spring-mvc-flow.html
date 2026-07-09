@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Spring MVC에서 요청이 DispatcherServlet, Controller, Service를 거쳐 응답으로 나가는 흐름을 정리한 공부 노트">
+  <title>요청이 Controller까지 도착하는 흐름 | lsy1307 기술 블로그</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#article">본문으로 이동</a>
+  <header class="site-header"><nav class="nav" aria-label="주요 메뉴">
+    <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
+    <div class="nav-links" id="nav-links"><a href="../spring-study.html">공부 노트</a><a href="../index.html">Home</a></div>
+  </nav></header>
+  <main id="article">
+    <header class="article-hero shell">
+      <a class="back-link" href="../spring-study.html">← Java Spring 공부</a>
+      <p class="eyebrow">Spring basic · MVC</p>
+      <h1>요청이 Controller까지 도착하는 흐름</h1>
+      <p class="article-lead">Spring MVC는 HTTP 요청을 Controller 메서드에 연결해 줍니다. 이 흐름을 알면 DTO, Validation, 예외 처리 위치가 더 분명해집니다.</p>
+      <div class="article-meta"><span>STUDY NOTE</span><span>6 MIN READ</span><span>SPRING MVC</span></div>
+    </header>
+    <div class="article-layout">
+      <aside class="toc"><strong>CONTENTS</strong><a href="#flow">요청 흐름</a><a href="#dto">DTO</a><a href="#validation">검증</a><a href="#exception">예외 처리</a><a href="#layer">계층 분리</a></aside>
+      <article class="article-body">
+        <h2 id="flow">기본 요청 흐름</h2>
+        <p>Spring MVC에서 HTTP 요청은 먼저 <code>DispatcherServlet</code>으로 들어옵니다. 이후 어떤 Controller의 어떤 메서드가 처리할지 찾고, 파라미터를 바인딩한 뒤 메서드를 실행합니다.</p>
+        <pre><code>Client
+  → DispatcherServlet
+  → HandlerMapping
+  → Controller
+  → Service
+  → Repository
+  → Response</code></pre>
+        <p>개발자가 매번 이 흐름을 직접 작성하지 않아도 되는 이유는 Spring MVC가 공통 흐름을 프레임워크 안에 넣어두었기 때문입니다. 우리는 주로 Controller 메서드와 비즈니스 로직에 집중합니다.</p>
+
+        <h2 id="dto">DTO는 외부 요청과 내부 모델 사이의 완충지대</h2>
+        <p>요청 body를 Entity에 바로 바인딩하면 외부 API 구조와 내부 도메인 구조가 강하게 묶입니다. 그래서 보통 Request DTO와 Response DTO를 따로 둡니다.</p>
+        <pre><code>record CreateMemberRequest(
+    String name,
+    String email
+) {
+}
+
+record MemberResponse(
+    Long id,
+    String name
+) {
+}</code></pre>
+        <p>DTO를 두면 API에 필요한 필드만 노출할 수 있고, Entity 변경이 곧바로 API 변경으로 이어지는 일을 줄일 수 있습니다.</p>
+
+        <h2 id="validation">검증은 Controller 입구에서 먼저 거르기</h2>
+        <p>형식 검증은 Controller 입구에서 빠르게 처리하는 편이 좋습니다. 예를 들어 이메일 형식, 빈 값, 길이 제한 같은 규칙은 <code>@Valid</code>와 Bean Validation으로 표현할 수 있습니다.</p>
+        <pre><code>record CreateMemberRequest(
+    @NotBlank String name,
+    @Email String email
+) {
+}
+
+@PostMapping("/members")
+public MemberResponse create(@Valid @RequestBody CreateMemberRequest request) {
+    return memberService.create(request);
+}</code></pre>
+        <p>다만 “이미 가입된 이메일인가?”처럼 DB 조회가 필요한 규칙은 단순 형식 검증이 아니라 비즈니스 검증에 가깝습니다. 이런 검증은 Service 계층에서 다루는 편이 자연스럽습니다.</p>
+
+        <h2 id="exception">예외 처리는 한곳으로 모으기</h2>
+        <p>Controller마다 try-catch를 반복하면 응답 형식이 쉽게 흩어집니다. Spring에서는 <code>@RestControllerAdvice</code>를 사용해 예외를 공통 응답으로 바꿀 수 있습니다.</p>
+        <pre><code>@RestControllerAdvice
+class ApiExceptionHandler {
+    @ExceptionHandler(IllegalArgumentException.class)
+    ErrorResponse handleBadRequest(IllegalArgumentException e) {
+        return new ErrorResponse(e.getMessage());
+    }
+}</code></pre>
+        <p>이렇게 하면 Controller는 성공 흐름에 집중하고, 실패 응답의 형식은 한곳에서 관리할 수 있습니다.</p>
+
+        <h2 id="layer">Controller와 Service를 나누는 기준</h2>
+        <p>Controller는 HTTP를 다루는 계층입니다. 요청 값을 받고, 인증 사용자 정보를 읽고, 응답 DTO를 반환합니다. Service는 HTTP와 무관한 비즈니스 흐름을 다룹니다.</p>
+        <div class="callout"><strong>간단한 기준</strong>코드에 <code>@RequestBody</code>, <code>@PathVariable</code>, HTTP status가 중요하면 Controller에 가깝고, 도메인 규칙과 트랜잭션이 중요하면 Service에 가깝습니다.</div>
+        <a class="next-post" href="./spring-jpa-transaction.html"><span>NEXT NOTE</span><strong>트랜잭션과 JPA 영속성 컨텍스트 기본 →</strong></a>
+      </article>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> lsy1307 · TECH BLOG</span><span>Java · Spring Study Notes</span></div></footer>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

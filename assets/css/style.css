@@ -253,6 +253,10 @@ button, input, textarea { font: inherit; }
   border-bottom: 1px solid var(--line);
 }
 
+.compact-section {
+  padding-top: 42px;
+}
+
 .section-head {
   display: grid;
   grid-template-columns: .9fr 1.1fr;
