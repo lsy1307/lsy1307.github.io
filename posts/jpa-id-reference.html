@@ -31,7 +31,7 @@
 
         <h2 id="measurement">k6 기반 병목 확인</h2>
         <p>리팩터링 전에 지원 현황 API를 대상으로 k6 부하 테스트를 진행했습니다. 평균값만으로는 일부 느린 요청을 가릴 수 있어 p99를 기준으로 판단했고, 기존 구조의 p99 응답 시간은 972ms였습니다.</p>
-        <figure class="article-photo"><div class="photo-slot small"><span>K6 RESULT IMAGE · 16:9</span></div><figcaption>교체 권장: 리팩터링 전후 k6 결과를 나란히 배치</figcaption></figure>
+        <figure class="article-photo"><img class="article-image" src="../assets/images/k6-before-after.png" alt="Grafana k6 대시보드에서 지원 현황 API의 p99가 972ms에서 366ms로 개선된 결과"><figcaption>지원 현황 API p99가 972ms에서 366ms로 줄어든 k6 측정 결과</figcaption></figure>
         <p>프로파일링 결과, 지망별로 반복되는 다중 조회와 연관 객체 탐색이 주요 개선 지점이었습니다. 따라서 단순히 캐시를 추가하기보다 읽기 경로 자체를 줄이는 것이 먼저라고 판단했습니다.</p>
 
         <h2 id="decision">fetch join을 선택하지 않은 이유</h2>

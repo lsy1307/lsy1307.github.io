@@ -30,7 +30,7 @@
 
         <h2 id="architecture">클라이언트와 계산 책임 분리</h2>
         <p>Android 앱은 좌표 요청과 결과 표시에 집중하고, 그래프 연산과 모델 적용은 백엔드의 <code>POST /calculate-route</code>에서 수행하도록 했습니다. 응답에는 Tmap 기본 경로와 안전 우회 경로, 각 경로의 가중치를 함께 담았습니다.</p>
-        <figure class="article-photo"><div class="photo-slot small"><span>REQUEST FLOW DIAGRAM · 16:9</span></div><figcaption>교체 권장: Android → API Gateway → FastAPI → Tmap/OSM/CCTV 흐름</figcaption></figure>
+        <figure class="article-photo"><img class="article-image" src="../assets/images/fastapi-route-flow.svg" alt="Android 요청이 FastAPI worker를 거쳐 Tmap, OSMnx, CCTV 데이터, DynamoDB로 이어지는 경로 계산 흐름도"><figcaption>경로 계산 요청에서 외부 경로 조회, 공간 연산, 이력 저장이 분리되는 흐름</figcaption></figure>
 
         <h2 id="workers">권장 공식보다 실제 리소스</h2>
         <p>Gunicorn과 UvicornWorker를 사용해 여러 요청을 프로세스 단위로 분산했습니다. 흔히 사용하는 <code>CPU 코어 수 × 2 + 1</code> 공식도 참고했지만, 그대로 적용하지는 않았습니다.</p>

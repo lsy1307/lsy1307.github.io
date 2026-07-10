@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Terraform 환경과 모듈 경계</title>
+  <desc id="desc">prod, stage, monitoring, load_test, global root module과 app_stack, monitoring_stack, shared_resources 모듈 관계</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#171a18"/>
+    </marker>
+    <style>
+      .bg{fill:#f5f4ef}.box{fill:#fffef9;stroke:#171a18;stroke-width:3}.soft{fill:#ebeae4;stroke:#171a18;stroke-width:2}.accent{fill:#baff3e;stroke:#171a18;stroke-width:3}.line{stroke:#171a18;stroke-width:3;fill:none;marker-end:url(#arrow)}.muted{fill:#67706a}.ink{fill:#171a18}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:26px;font-weight:850}.small{font-size:20px;font-weight:700}.tiny{font-size:17px;font-weight:700}
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="675"/>
+  <text x="70" y="75" class="title ink">Terraform module boundary</text>
+  <text x="70" y="112" class="small muted">환경별 root module은 state를 나누고, 공통 module은 함께 바뀌는 리소스를 묶음</text>
+
+  <rect x="70" y="170" width="230" height="85" rx="18" class="accent"/><text x="115" y="222" class="label ink">prod</text>
+  <rect x="70" y="280" width="230" height="85" rx="18" class="box"/><text x="115" y="332" class="label ink">stage</text>
+  <rect x="70" y="390" width="230" height="85" rx="18" class="box"/><text x="115" y="442" class="label ink">monitoring</text>
+  <rect x="70" y="500" width="230" height="85" rx="18" class="box"/><text x="115" y="552" class="label ink">load_test</text>
+
+  <rect x="468" y="168" width="285" height="150" rx="24" class="box"/>
+  <text x="515" y="225" class="label ink">app_stack</text>
+  <text x="515" y="258" class="small muted">EC2 · RDS · SG</text>
+  <text x="515" y="287" class="tiny muted">prod/stage inputs</text>
+
+  <rect x="468" y="370" width="285" height="150" rx="24" class="box"/>
+  <text x="515" y="427" class="label ink">monitoring_stack</text>
+  <text x="515" y="460" class="small muted">Grafana · Loki</text>
+  <text x="515" y="489" class="tiny muted">Prometheus · reverse proxy</text>
+
+  <rect x="855" y="250" width="275" height="185" rx="24" class="accent"/>
+  <text x="900" y="314" class="label ink">shared_resources</text>
+  <text x="900" y="350" class="small ink">S3 · CloudFront</text>
+  <text x="900" y="379" class="small ink">Lambda · ACM</text>
+
+  <rect x="855" y="500" width="275" height="85" rx="18" class="soft"/>
+  <text x="900" y="535" class="small ink">S3 backend</text>
+  <text x="900" y="562" class="tiny muted">env별 tfstate key + lockfile</text>
+
+  <path class="line" d="M300 212 C375 212 385 212 456 212"/>
+  <path class="line" d="M300 322 C375 322 385 265 456 265"/>
+  <path class="line" d="M300 432 C380 432 390 432 456 432"/>
+  <path class="line" d="M300 542 C385 542 380 315 456 300"/>
+  <path class="line" d="M753 240 C805 250 815 282 843 310"/>
+  <path class="line" d="M753 445 C810 430 820 390 843 365"/>
+  <path class="line" d="M185 585 C355 638 780 638 960 590"/>
+
+  <text x="350" y="154" class="tiny muted">root modules</text>
+  <text x="560" y="154" class="tiny muted">reusable modules</text>
+  <text x="900" y="232" class="tiny muted">global boundary</text>
+</svg>

@@ -68,7 +68,7 @@ resource "aws_db_instance" "load_test" {
           <li><strong>Stop</strong> — stage의 dev 설정 복구, load-test RDS와 부하 발생기 제거</li>
         </ol>
         <p>세 workflow는 같은 concurrency group을 사용하고 실행 중인 작업을 자동 취소하지 않도록 했습니다. Start가 리소스를 생성하는 중에 Stop이나 다른 Run이 끼어드는 경쟁 상태를 막기 위한 선택입니다.</p>
-        <figure class="article-photo"><div class="photo-slot small"><span>START · RUN · STOP WORKFLOW · 16:9</span></div><figcaption>교체 권장: 세 workflow와 RDS·load generator 생명주기</figcaption></figure>
+        <figure class="article-photo"><img class="article-image" src="../assets/images/loadtest-lifecycle.svg" alt="Start, Run, Stop workflow와 RDS, Parameter Store, k6 부하 발생기의 생명주기 구조도"><figcaption>Start·Run·Stop workflow로 분리한 부하 테스트 환경 생명주기</figcaption></figure>
 
         <h2 id="execution">SSH 없이 SSM으로 실행</h2>
         <p>GitHub Actions는 OIDC로 AWS Role을 획득하고, 부하 발생기 EC2에는 SSM RunCommand로 접근합니다. 로컬 SSH key 경로와 실행자 환경에 의존하던 흐름을 제거했습니다.</p>

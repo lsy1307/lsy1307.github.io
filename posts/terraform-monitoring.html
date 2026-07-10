@@ -64,7 +64,7 @@
           <li><code>shared_resources</code> — 환경을 가로질러 공유하는 S3, CloudFront, Lambda, ACM</li>
         </ul>
         <p>prod와 stage는 같은 <code>app_stack</code>을 사용하되 인스턴스 크기, ingress 규칙, 도메인과 RDS 설정을 입력값으로 분리했습니다. 복사된 리소스 정의가 서로 다른 방향으로 변하는 drift를 줄이기 위한 구조입니다.</p>
-        <figure class="article-photo"><div class="photo-slot small"><span>ROOT MODULE → SHARED MODULES · 16:9</span></div><figcaption>교체 권장: 환경 root와 app_stack·monitoring_stack·shared_resources 관계</figcaption></figure>
+        <figure class="article-photo"><img class="article-image" src="../assets/images/terraform-modules.svg" alt="환경별 Terraform root module과 app_stack, monitoring_stack, shared_resources 공통 모듈 관계도"><figcaption>환경별 root module과 재사용 module의 책임 경계</figcaption></figure>
 
         <h2 id="migration">모니터링 환경부터 점진적 전환</h2>
         <p>첫 전환 대상은 Grafana, Loki, Prometheus 기반 모니터링 서버였습니다. EC2, Security Group, Nginx reverse proxy 구성이 수동 설정에 의존했지만 애플리케이션 데이터 경로와는 분리되어 있어 Terraform 도입을 검증하기 좋은 경계였습니다.</p>

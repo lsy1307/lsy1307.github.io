@@ -710,6 +710,19 @@ button, input, textarea { font: inherit; }
   margin: 45px 0;
 }
 
+.article-photo .article-image,
+.article-cover .article-image {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.article-cover .article-image {
+  border-radius: 24px;
+}
+
 .article-photo figcaption {
   margin-top: 10px;
   color: var(--muted);
