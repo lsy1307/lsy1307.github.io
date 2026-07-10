@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Java Thread, synchronized, volatile, ExecutorService와 동시성 문제를 정리한 공부 노트">
+  <title>Thread, synchronized, ExecutorService 기본 | lsy1307 기술 블로그</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#article">본문으로 이동</a>
+  <header class="site-header"><nav class="nav" aria-label="주요 메뉴">
+    <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
+    <div class="nav-links" id="nav-links"><a href="../spring-study.html">공부 노트</a><a href="../index.html">Home</a></div>
+  </nav></header>
+  <main id="article">
+    <header class="article-hero shell">
+      <a class="back-link" href="../spring-study.html">← Java Spring 공부</a>
+      <p class="eyebrow">Java advanced · Concurrency</p>
+      <h1>Thread, synchronized, ExecutorService 기본</h1>
+      <p class="article-lead">동시성 문제는 코드가 틀려 보이지 않는데 가끔 틀리는 형태로 나타납니다. 공유 상태와 실행 단위를 분리해서 보는 감각이 필요합니다.</p>
+      <div class="article-meta"><span>STUDY NOTE</span><span>7 MIN READ</span><span>JAVA</span></div>
+    </header>
+    <div class="article-layout">
+      <aside class="toc"><strong>CONTENTS</strong><a href="#thread">Thread</a><a href="#race">race condition</a><a href="#lock">lock</a><a href="#executor">ExecutorService</a><a href="#spring">Spring에서</a></aside>
+      <article class="article-body">
+        <h2 id="thread">Thread는 실행 흐름</h2>
+        <p>프로세스 안에서 여러 작업 흐름을 동시에 실행할 때 Thread를 사용합니다. Spring Boot 서버도 요청을 처리할 때 스레드 풀의 스레드를 사용합니다.</p>
+        <p>스레드가 많다고 항상 빠른 것은 아닙니다. CPU보다 스레드가 과도하게 많으면 context switching 비용이 늘고, DB connection pool 같은 외부 자원에서 병목이 생길 수 있습니다.</p>
+
+        <h2 id="race">race condition: 실행 순서에 따라 결과가 바뀐다</h2>
+        <p>여러 스레드가 같은 값을 동시에 읽고 쓰면 실행 순서에 따라 결과가 달라질 수 있습니다.</p>
+        <pre><code>class Counter {
+    private int count = 0;
+
+    void increase() {
+        count++;
+    }
+}</code></pre>
+        <p><code>count++</code>는 한 줄이지만 실제로는 읽기, 증가, 쓰기 단계로 나뉩니다. 두 스레드가 동시에 실행하면 증가가 누락될 수 있습니다.</p>
+
+        <h2 id="lock"><code>synchronized</code>와 lock</h2>
+        <p><code>synchronized</code>는 한 번에 하나의 스레드만 임계 영역에 들어오도록 합니다. 공유 상태를 보호할 수 있지만, lock 범위가 넓으면 처리량이 줄어듭니다.</p>
+        <pre><code>class Counter {
+    private int count = 0;
+
+    synchronized void increase() {
+        count++;
+    }
+}</code></pre>
+        <p>불변 객체, 지역 변수, DB의 원자적 update처럼 lock 없이 문제를 풀 수 있는 구조가 있다면 먼저 검토합니다. 동시성은 “잠그기”보다 “공유하지 않기”가 더 단순할 때가 많습니다.</p>
+
+        <h2 id="executor">ExecutorService: 스레드 직접 생성 대신 풀 사용</h2>
+        <p>요청마다 새 스레드를 만들면 비용이 큽니다. <code>ExecutorService</code>는 미리 만든 스레드 풀에 작업을 제출해 재사용합니다.</p>
+        <pre><code>ExecutorService executor = Executors.newFixedThreadPool(4);
+
+executor.submit(() -&gt; {
+    sendEmail();
+});</code></pre>
+        <p>스레드 풀 크기는 CPU 작업인지 I/O 대기 작업인지에 따라 다르게 잡아야 합니다. CPU 중심 작업은 코어 수에 가깝게, I/O 대기가 많은 작업은 더 크게 잡을 수 있지만 외부 자원 한계를 같이 봐야 합니다.</p>
+
+        <h2 id="spring">Spring에서 자주 만나는 지점</h2>
+        <ul>
+          <li>singleton Bean은 여러 요청 스레드가 공유하므로 가변 필드를 조심합니다.</li>
+          <li><code>@Async</code>는 별도 스레드에서 실행되므로 트랜잭션과 보안 컨텍스트 전파를 확인합니다.</li>
+          <li>DB connection pool보다 요청 스레드가 훨씬 많으면 대기 시간이 길어질 수 있습니다.</li>
+        </ul>
+        <a class="next-post" href="./spring-ioc-di.html"><span>NEXT NOTE</span><strong>Spring IoC와 DI가 하는 일 →</strong></a>
+      </article>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> lsy1307 · TECH BLOG</span><span>Java · Spring Study Notes</span></div></footer>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

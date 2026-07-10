@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="메인 글 목록에는 노출하지 않는 Java Spring 기본 공부 노트 모음입니다.">
+  <meta name="description" content="Java, JVM, Spring, JPA 기본기와 심화 주제를 정리한 공부 노트 모음입니다.">
   <title>Java Spring 공부 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="./assets/css/style.css">
 </head>
@@ -15,6 +15,8 @@
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
         <a href="./index.html">Home</a>
+        <a href="./index.html#writing">Writing</a>
+        <a href="./spring-study.html" aria-current="page">Study</a>
         <a href="https://github.com/lsy1307" target="_blank" rel="noreferrer">GitHub</a>
       </div>
     </nav>
@@ -26,10 +28,10 @@
       <p class="eyebrow">Study notes · Java Spring</p>
       <h1>Java Spring 공부</h1>
       <p class="article-lead">
-        프로젝트 회고 글과 분리해 둔 기본 개념 노트입니다.
-        면접용 암기보다 실제 코드를 읽고 고칠 때 헷갈리지 않는 기준을 정리합니다.
+        Java 언어 기본기부터 Spring Boot, JPA, 트랜잭션, 테스트, 보안까지
+        실제 코드를 읽고 고칠 때 헷갈리지 않는 기준을 정리합니다.
       </p>
-      <div class="article-meta"><span>BASIC NOTES</span><span>HIDDEN FROM MAIN</span><span>JAVA · SPRING</span></div>
+      <div class="article-meta"><span>BASIC TO ADVANCED</span><span>JAVA · SPRING</span><span>JPA · TEST</span></div>
     </header>
 
     <section class="section compact-section">
@@ -37,11 +39,11 @@
         <div class="section-head">
           <div>
             <p class="eyebrow">Index</p>
-            <h2>기본기를<br>작게 쪼개기</h2>
+            <h2>기본기에서<br>운영 코드까지</h2>
           </div>
           <p>
-            이 페이지는 메인 Writing 영역에 노출하지 않는 별도 공부 공간입니다.
-            한 번에 깊게 들어가기보다, 자주 헷갈리는 기준을 짧게 확인할 수 있게 구성했습니다.
+            개념을 외우는 용도보다 코드 리뷰, 리팩터링, 장애 원인 분석에서
+            다시 꺼내 볼 수 있는 기준을 중심으로 묶었습니다.
           </p>
         </div>
 
@@ -53,7 +55,7 @@
                 <h3 id="java-basic-title">Java Basic</h3>
                 <p>객체, 참조, 컬렉션처럼 Spring 코드를 읽기 전에 먼저 잡아야 하는 기준</p>
               </div>
-              <span class="writing-group-count">2 NOTES</span>
+              <span class="writing-group-count">5 NOTES</span>
             </header>
             <div class="post-list">
               <a class="post-card" href="./study/java-object-equality.html">
@@ -74,21 +76,79 @@
                 <p>자료구조 선택을 “그냥 익숙해서”가 아니라 조회·중복·순서 기준으로 결정하기</p>
                 <span class="post-arrow" aria-hidden="true">↗</span>
               </a>
+              <a class="post-card" href="./study/java-exception-handling.html">
+                <span class="post-number">03 / JAVA</span>
+                <div>
+                  <h4>예외 처리 기준: checked, unchecked, custom exception</h4>
+                  <div class="tag-row"><span class="tag">Exception</span><span class="tag">Rollback</span><span class="tag">Error Response</span></div>
+                </div>
+                <p>복구 가능한 예외와 프로그래밍 오류를 구분하고 API 응답까지 연결하는 기준</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/java-generics-optional.html">
+                <span class="post-number">04 / JAVA</span>
+                <div>
+                  <h4>Generics와 Optional을 안전하게 쓰는 법</h4>
+                  <div class="tag-row"><span class="tag">Generics</span><span class="tag">Optional</span><span class="tag">Type Safety</span></div>
+                </div>
+                <p>런타임 캐스팅 오류를 줄이고 값이 없을 수 있음을 타입으로 표현하기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/java-stream-lambda.html">
+                <span class="post-number">05 / JAVA</span>
+                <div>
+                  <h4>Lambda와 Stream을 읽기 좋게 쓰는 기준</h4>
+                  <div class="tag-row"><span class="tag">Lambda</span><span class="tag">Stream</span><span class="tag">Collector</span></div>
+                </div>
+                <p>반복문을 무조건 바꾸기보다 데이터 흐름이 선명할 때 Stream을 선택하기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </section>
+
+          <section class="writing-group" aria-labelledby="jvm-runtime-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">02</span>
+              <div class="writing-group-copy">
+                <h3 id="jvm-runtime-title">JVM &amp; Runtime</h3>
+                <p>메모리, GC, 스레드처럼 운영 환경에서 바로 드러나는 Java 실행 모델</p>
+              </div>
+              <span class="writing-group-count">2 NOTES</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./study/jvm-memory-gc.html">
+                <span class="post-number">06 / JVM</span>
+                <div>
+                  <h4>JVM 메모리 구조와 GC 기본</h4>
+                  <div class="tag-row"><span class="tag">Heap</span><span class="tag">Stack</span><span class="tag">GC</span></div>
+                </div>
+                <p>Heap, Stack, Metaspace와 GC 로그를 볼 때 먼저 확인할 지점</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/java-concurrency.html">
+                <span class="post-number">07 / CONCURRENCY</span>
+                <div>
+                  <h4>Thread, synchronized, ExecutorService 기본</h4>
+                  <div class="tag-row"><span class="tag">Thread</span><span class="tag">Lock</span><span class="tag">Executor</span></div>
+                </div>
+                <p>공유 상태와 스레드 풀을 다룰 때 생기는 race condition과 deadlock 감각 잡기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
             </div>
           </section>
 
           <section class="writing-group" aria-labelledby="spring-basic-title">
             <header class="writing-group-head">
-              <span class="writing-group-index">02</span>
+              <span class="writing-group-index">03</span>
               <div class="writing-group-copy">
                 <h3 id="spring-basic-title">Spring Basic</h3>
                 <p>Spring이 객체를 만들고, 요청을 보내고, 트랜잭션을 묶는 방식</p>
               </div>
-              <span class="writing-group-count">3 NOTES</span>
+              <span class="writing-group-count">4 NOTES</span>
             </header>
             <div class="post-list">
               <a class="post-card" href="./study/spring-ioc-di.html">
-                <span class="post-number">03 / SPRING</span>
+                <span class="post-number">08 / SPRING</span>
                 <div>
                   <h4>Spring IoC와 DI가 하는 일</h4>
                   <div class="tag-row"><span class="tag">IoC</span><span class="tag">DI</span><span class="tag">Bean</span></div>
@@ -97,7 +157,7 @@
                 <span class="post-arrow" aria-hidden="true">↗</span>
               </a>
               <a class="post-card" href="./study/spring-mvc-flow.html">
-                <span class="post-number">04 / SPRING MVC</span>
+                <span class="post-number">09 / SPRING MVC</span>
                 <div>
                   <h4>요청이 Controller까지 도착하는 흐름</h4>
                   <div class="tag-row"><span class="tag">DispatcherServlet</span><span class="tag">DTO</span><span class="tag">Validation</span></div>
@@ -105,13 +165,93 @@
                 <p>HTTP 요청이 컨트롤러, 서비스, 응답으로 이어지는 기본 경로</p>
                 <span class="post-arrow" aria-hidden="true">↗</span>
               </a>
+              <a class="post-card" href="./study/spring-configuration-properties.html">
+                <span class="post-number">10 / CONFIG</span>
+                <div>
+                  <h4>Profile과 Configuration Properties 설계</h4>
+                  <div class="tag-row"><span class="tag">Profile</span><span class="tag">@ConfigurationProperties</span><span class="tag">YAML</span></div>
+                </div>
+                <p>환경별 설정을 코드와 분리하고 운영 실수를 줄이는 설정 구조 만들기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/spring-filter-interceptor-aop.html">
+                <span class="post-number">11 / SPRING</span>
+                <div>
+                  <h4>Filter, Interceptor, AOP를 구분하는 기준</h4>
+                  <div class="tag-row"><span class="tag">Filter</span><span class="tag">Interceptor</span><span class="tag">AOP</span></div>
+                </div>
+                <p>공통 관심사를 어느 계층에서 처리해야 하는지 요청 흐름 기준으로 나누기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </section>
+
+          <section class="writing-group" aria-labelledby="jpa-transaction-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">04</span>
+              <div class="writing-group-copy">
+                <h3 id="jpa-transaction-title">JPA &amp; Transaction</h3>
+                <p>영속성 컨텍스트, 연관관계, 트랜잭션 전파처럼 장애와 성능에 직접 닿는 주제</p>
+              </div>
+              <span class="writing-group-count">3 NOTES</span>
+            </header>
+            <div class="post-list">
               <a class="post-card" href="./study/spring-jpa-transaction.html">
-                <span class="post-number">05 / JPA</span>
+                <span class="post-number">12 / JPA</span>
                 <div>
                   <h4>트랜잭션과 JPA 영속성 컨텍스트 기본</h4>
                   <div class="tag-row"><span class="tag">Transaction</span><span class="tag">Persistence Context</span><span class="tag">N+1</span></div>
                 </div>
                 <p>왜 서비스 계층에서 트랜잭션을 잡고, 변경 감지와 지연 로딩을 조심해야 하는지</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/jpa-relationship-fetch.html">
+                <span class="post-number">13 / JPA</span>
+                <div>
+                  <h4>연관관계 매핑과 Fetch 전략</h4>
+                  <div class="tag-row"><span class="tag">Mapping</span><span class="tag">LAZY</span><span class="tag">N+1</span></div>
+                </div>
+                <p>객체 그래프를 편하게 탐색하는 코드가 쿼리 비용으로 바뀌는 지점을 확인하기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/spring-transaction-advanced.html">
+                <span class="post-number">14 / TX ADVANCED</span>
+                <div>
+                  <h4>트랜잭션 전파, readOnly, rollback 심화</h4>
+                  <div class="tag-row"><span class="tag">Propagation</span><span class="tag">readOnly</span><span class="tag">Rollback</span></div>
+                </div>
+                <p>REQUIRES_NEW와 rollback-only가 실제 서비스 코드에서 만드는 함정 정리</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </section>
+
+          <section class="writing-group" aria-labelledby="spring-advanced-title">
+            <header class="writing-group-head">
+              <span class="writing-group-index">05</span>
+              <div class="writing-group-copy">
+                <h3 id="spring-advanced-title">Spring Advanced</h3>
+                <p>테스트 슬라이스, 보안 흐름처럼 서비스 안정성을 높이는 응용 주제</p>
+              </div>
+              <span class="writing-group-count">2 NOTES</span>
+            </header>
+            <div class="post-list">
+              <a class="post-card" href="./study/spring-test-slices.html">
+                <span class="post-number">15 / TEST</span>
+                <div>
+                  <h4>Spring 테스트 슬라이스와 통합 테스트 기준</h4>
+                  <div class="tag-row"><span class="tag">@WebMvcTest</span><span class="tag">@DataJpaTest</span><span class="tag">@SpringBootTest</span></div>
+                </div>
+                <p>빠른 단위 검증과 실제 환경에 가까운 통합 검증을 구분해서 쓰기</p>
+                <span class="post-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a class="post-card" href="./study/spring-security-basic.html">
+                <span class="post-number">16 / SECURITY</span>
+                <div>
+                  <h4>Spring Security 인증·인가 흐름 기본</h4>
+                  <div class="tag-row"><span class="tag">Authentication</span><span class="tag">Authorization</span><span class="tag">FilterChain</span></div>
+                </div>
+                <p>로그인한 사용자인지 확인하는 인증과 권한이 있는지 확인하는 인가를 분리하기</p>
                 <span class="post-arrow" aria-hidden="true">↗</span>
               </a>
             </div>

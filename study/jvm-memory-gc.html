@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JVM 메모리 구조, Heap, Stack, Metaspace, GC 기본과 운영 지표를 정리한 공부 노트">
+  <title>JVM 메모리 구조와 GC 기본 | lsy1307 기술 블로그</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#article">본문으로 이동</a>
+  <header class="site-header"><nav class="nav" aria-label="주요 메뉴">
+    <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
+    <div class="nav-links" id="nav-links"><a href="../spring-study.html">공부 노트</a><a href="../index.html">Home</a></div>
+  </nav></header>
+  <main id="article">
+    <header class="article-hero shell">
+      <a class="back-link" href="../spring-study.html">← Java Spring 공부</a>
+      <p class="eyebrow">JVM · Memory</p>
+      <h1>JVM 메모리 구조와 GC 기본</h1>
+      <p class="article-lead">Spring 애플리케이션의 응답 지연과 OOM을 볼 때는 JVM 메모리 구조와 GC가 어떤 비용을 만드는지 먼저 알아야 합니다.</p>
+      <div class="article-meta"><span>STUDY NOTE</span><span>7 MIN READ</span><span>JVM</span></div>
+    </header>
+    <div class="article-layout">
+      <aside class="toc"><strong>CONTENTS</strong><a href="#memory">메모리 구조</a><a href="#heap">Heap</a><a href="#gc">GC</a><a href="#metrics">운영 지표</a></aside>
+      <article class="article-body">
+        <h2 id="memory">JVM 메모리 큰 그림</h2>
+        <p>JVM 메모리는 크게 Heap, Stack, Metaspace, Code Cache 등으로 나눠 볼 수 있습니다. 애플리케이션 객체 대부분은 Heap에 올라가고, 메서드 호출마다 필요한 지역 변수와 호출 정보는 각 스레드의 Stack에 쌓입니다.</p>
+        <pre><code>JVM
+  ├─ Heap: 객체가 주로 저장되는 공간
+  ├─ Stack: 스레드별 메서드 호출과 지역 변수
+  ├─ Metaspace: 클래스 메타데이터
+  └─ Code Cache: JIT 컴파일된 코드</code></pre>
+        <p>Stack은 스레드마다 따로 있고, Heap은 여러 스레드가 공유합니다. 그래서 공유 객체를 여러 스레드가 수정할 때 동시성 문제가 생길 수 있습니다.</p>
+
+        <h2 id="heap">Heap과 객체 생명주기</h2>
+        <p>대부분의 객체는 생성 후 짧게 쓰이고 사라집니다. JVM의 세대별 GC는 이 특성을 이용해 young generation과 old generation을 나눠 관리합니다.</p>
+        <ul>
+          <li>Young 영역: 새 객체가 먼저 할당되는 곳</li>
+          <li>Old 영역: 여러 번 GC를 버틴 객체가 이동하는 곳</li>
+          <li>객체가 계속 참조되면 GC 대상이 되지 않습니다.</li>
+        </ul>
+        <p>캐시, static 컬렉션, ThreadLocal 정리 누락처럼 참조가 계속 남는 구조는 메모리 누수로 이어질 수 있습니다.</p>
+
+        <h2 id="gc">GC는 메모리를 정리하지만 멈춤 비용을 만든다</h2>
+        <p>GC는 더 이상 참조되지 않는 객체를 정리합니다. 하지만 어떤 GC든 애플리케이션 스레드를 잠시 멈추는 구간이 생길 수 있습니다. 이 시간을 Stop-The-World pause라고 부릅니다.</p>
+        <pre><code>java -Xms512m -Xmx512m -Xlog:gc*:file=gc.log -jar app.jar</code></pre>
+        <p>GC 로그를 보면 pause time, heap 사용량, full GC 여부를 확인할 수 있습니다. 응답 지연이 갑자기 튄다면 DB나 네트워크뿐 아니라 GC pause도 함께 봐야 합니다.</p>
+
+        <h2 id="metrics">운영에서 먼저 보는 지표</h2>
+        <ul>
+          <li>Heap used가 GC 이후에도 계속 증가하는지</li>
+          <li>Full GC가 반복되는지</li>
+          <li>GC pause 시간이 p99 응답 시간과 겹치는지</li>
+          <li>스레드 수와 Stack 메모리 사용량이 과도하지 않은지</li>
+        </ul>
+        <div class="callout"><strong>기준</strong>메모리 문제를 볼 때는 “많이 쓴다”보다 “GC 이후에도 회수되지 않는다”가 더 중요합니다. 회수되지 않는 참조를 찾는 게 누수 분석의 시작입니다.</div>
+        <a class="next-post" href="./java-concurrency.html"><span>NEXT NOTE</span><strong>Thread, synchronized, ExecutorService 기본 →</strong></a>
+      </article>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> lsy1307 · TECH BLOG</span><span>Java · Spring Study Notes</span></div></footer>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>
