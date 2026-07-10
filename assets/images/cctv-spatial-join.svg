@@ -1,48 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">OSM 간선 버퍼와 CCTV 공간 조인</title>
-  <desc id="desc">OSM 간선을 미터 좌표계로 변환하고 80미터 버퍼 안의 CCTV 점을 spatial join으로 세는 과정</desc>
+  <desc id="desc">미터 좌표계로 변환한 뒤 간선 주변 80미터 버퍼 안의 CCTV 점을 세는 과정</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#171a18"/>
     </marker>
     <style>
-      .bg{fill:#f5f4ef}.panel{fill:#fffef9;stroke:#171a18;stroke-width:3}.buffer{fill:#baff3e;opacity:.44;stroke:#7cab22;stroke-width:4}.edge{stroke:#171a18;stroke-width:9;fill:none;stroke-linecap:round}.point{fill:#171a18}.out{fill:#fffef9;stroke:#67706a;stroke-width:3}.line{stroke:#171a18;stroke-width:3;fill:none;marker-end:url(#arrow)}.muted{fill:#67706a}.ink{fill:#171a18}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:25px;font-weight:850}.small{font-size:19px;font-weight:700}.tiny{font-size:16px;font-weight:700}
+      .bg{fill:#f5f4ef}.card{fill:#fffef9;stroke:#171a18;stroke-width:3}.buffer{fill:#baff3e;opacity:.48;stroke:#7cab22;stroke-width:4}.edge{stroke:#171a18;stroke-width:10;fill:none;stroke-linecap:round}.point{fill:#171a18}.out{fill:#fffef9;stroke:#67706a;stroke-width:3}.line{stroke:#171a18;stroke-width:3;fill:none;marker-end:url(#arrow)}.accent{fill:#baff3e;stroke:#171a18;stroke-width:3}.muted{fill:#67706a}.ink{fill:#171a18}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:26px;font-weight:850}.small{font-size:19px;font-weight:700}.tiny{font-size:16px;font-weight:700}
     </style>
   </defs>
   <rect class="bg" width="1200" height="675"/>
-  <text x="70" y="78" class="title ink">Edge buffer + CCTV spatial join</text>
-  <text x="70" y="114" class="small muted">위경도를 UTM으로 투영한 뒤 80m 버퍼 안의 CCTV 점을 간선별로 집계</text>
+  <text x="70" y="78" class="title ink">Edge buffer + CCTV join</text>
+  <text x="70" y="114" class="small muted">위경도 좌표를 미터 좌표계로 바꾼 뒤, 간선 주변 CCTV를 집계</text>
 
-  <rect x="70" y="160" width="620" height="430" rx="28" class="panel"/>
-  <path class="buffer" d="M165 455 C295 275 405 390 525 235 C550 202 597 235 570 275 C430 475 320 365 220 505 C190 545 135 500 165 455Z"/>
-  <path class="edge" d="M190 480 C310 315 410 425 548 250"/>
-
-  <circle cx="260" cy="405" r="9" class="point"/>
-  <circle cx="320" cy="350" r="9" class="point"/>
-  <circle cx="385" cy="392" r="9" class="point"/>
-  <circle cx="458" cy="335" r="9" class="point"/>
-  <circle cx="510" cy="280" r="9" class="point"/>
+  <rect x="75" y="165" width="600" height="395" rx="28" class="card"/>
+  <path class="buffer" d="M170 430 C285 270 395 388 520 235 C548 200 598 232 570 274 C430 475 315 370 220 500 C188 540 135 480 170 430Z"/>
+  <path class="edge" d="M190 465 C305 310 405 420 548 252"/>
+  <circle cx="262" cy="396" r="9" class="point"/>
+  <circle cx="320" cy="348" r="9" class="point"/>
+  <circle cx="384" cy="386" r="9" class="point"/>
+  <circle cx="455" cy="332" r="9" class="point"/>
+  <circle cx="510" cy="278" r="9" class="point"/>
   <circle cx="565" cy="420" r="9" class="out"/>
   <circle cx="245" cy="250" r="9" class="out"/>
-  <text x="115" y="210" class="label ink">80m buffer</text>
-  <text x="115" y="240" class="small muted">within predicate</text>
+  <text x="150" y="220" class="label ink">80m buffer</text>
+  <text x="150" y="250" class="small muted">검은 점만 집계</text>
 
-  <rect x="780" y="180" width="330" height="82" rx="18" class="panel"/>
-  <text x="815" y="215" class="small ink">1. choose UTM EPSG</text>
-  <text x="815" y="241" class="tiny muted">degree → meter operation</text>
+  <rect x="775" y="180" width="330" height="82" rx="18" class="card"/>
+  <text x="940" y="215" text-anchor="middle" class="small ink">1. 미터 좌표계 변환</text>
+  <text x="940" y="242" text-anchor="middle" class="tiny muted">degree → meter</text>
 
-  <rect x="780" y="310" width="330" height="82" rx="18" class="panel"/>
-  <text x="815" y="345" class="small ink">2. edge.buffer(80m)</text>
-  <text x="815" y="371" class="tiny muted">OSM edge polygon</text>
+  <rect x="775" y="315" width="330" height="82" rx="18" class="card"/>
+  <text x="940" y="350" text-anchor="middle" class="small ink">2. 간선 주변 버퍼</text>
+  <text x="940" y="377" text-anchor="middle" class="tiny muted">80m polygon</text>
 
-  <rect x="780" y="440" width="330" height="82" rx="18" class="panel"/>
-  <text x="815" y="475" class="small ink">3. spatial join</text>
-  <text x="815" y="501" class="tiny muted">count / edge length(km)</text>
+  <rect x="775" y="450" width="330" height="82" rx="18" class="card"/>
+  <text x="940" y="485" text-anchor="middle" class="small ink">3. CCTV 수 집계</text>
+  <text x="940" y="512" text-anchor="middle" class="tiny muted">count / km</text>
 
-  <path class="line" d="M690 248 H768"/>
-  <path class="line" d="M690 350 H768"/>
-  <path class="line" d="M690 455 H768"/>
+  <path class="line" d="M675 221 H763"/>
+  <path class="line" d="M675 356 H763"/>
+  <path class="line" d="M675 491 H763"/>
 
-  <rect x="225" y="610" width="755" height="42" rx="21" class="buffer"/>
-  <text x="300" y="637" class="small ink">density_per_km = CCTV count inside buffer / edge length(km)</text>
+  <rect x="260" y="600" width="680" height="44" rx="22" class="accent"/>
+  <text x="600" y="628" text-anchor="middle" class="small ink">CCTV density = buffer 안의 점 개수 / 간선 길이</text>
 </svg>

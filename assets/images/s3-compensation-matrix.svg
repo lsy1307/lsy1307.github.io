@@ -1,50 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">S3 보상 삭제 실패 매트릭스</title>
-  <desc id="desc">로고 업로드, 배경 업로드, DB 저장 단계별 실패와 S3 보상 삭제 범위</desc>
+  <desc id="desc">이미지 업로드와 DB 저장 단계에서 실패했을 때 어떤 S3 객체를 삭제하는지 보여주는 카드형 매트릭스</desc>
   <defs>
     <style>
-      .bg{fill:#f5f4ef}.head{fill:#171a18}.cell{fill:#fffef9;stroke:#171a18;stroke-width:2}.accent{fill:#baff3e;stroke:#171a18;stroke-width:2}.warn{fill:#ebeae4;stroke:#171a18;stroke-width:2}.ink{fill:#171a18}.white{fill:#fffef9}.muted{fill:#67706a}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:22px;font-weight:850}.small{font-size:18px;font-weight:700}.tiny{font-size:16px;font-weight:700}
+      .bg{fill:#f5f4ef}.card{fill:#fffef9;stroke:#171a18;stroke-width:3}.accent{fill:#baff3e;stroke:#171a18;stroke-width:3}.soft{fill:#ebeae4;stroke:#171a18;stroke-width:2}.ink{fill:#171a18}.muted{fill:#67706a}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:26px;font-weight:850}.small{font-size:20px;font-weight:700}.tiny{font-size:16px;font-weight:700}
     </style>
   </defs>
   <rect class="bg" width="1200" height="675"/>
-  <text x="70" y="76" class="title ink">S3 compensation matrix</text>
-  <text x="70" y="113" class="small muted">DB 트랜잭션 밖에서 성공한 S3 업로드만 실패 역순으로 정리</text>
+  <text x="70" y="78" class="title ink">S3 compensation</text>
+  <text x="70" y="114" class="small muted">DB 트랜잭션 밖에서 성공한 업로드만 실패 역순으로 정리</text>
 
-  <rect x="70" y="160" width="1060" height="65" rx="18" class="head"/>
-  <text x="105" y="202" class="label white">실패 지점</text>
-  <text x="365" y="202" class="label white">이미 생성된 부수 효과</text>
-  <text x="710" y="202" class="label white">보상 작업</text>
-  <text x="975" y="202" class="label white">응답</text>
+  <rect x="80" y="180" width="310" height="250" rx="26" class="card"/>
+  <text x="235" y="235" text-anchor="middle" class="label ink">1. 첫 업로드 실패</text>
+  <text x="235" y="285" text-anchor="middle" class="small muted">생성된 객체 없음</text>
+  <rect x="125" y="330" width="220" height="60" rx="16" class="soft"/>
+  <text x="235" y="368" text-anchor="middle" class="small ink">삭제 없음</text>
 
-  <rect x="70" y="225" width="260" height="95" class="cell"/>
-  <text x="105" y="275" class="label ink">로고 업로드 실패</text>
-  <rect x="330" y="225" width="340" height="95" class="cell"/>
-  <text x="365" y="275" class="small muted">없음</text>
-  <rect x="670" y="225" width="260" height="95" class="cell"/>
-  <text x="705" y="275" class="small muted">삭제 없음</text>
-  <rect x="930" y="225" width="200" height="95" class="cell"/>
-  <text x="965" y="275" class="small ink">원래 예외</text>
+  <rect x="445" y="180" width="310" height="250" rx="26" class="card"/>
+  <text x="600" y="235" text-anchor="middle" class="label ink">2. 두 번째 실패</text>
+  <text x="600" y="285" text-anchor="middle" class="small muted">첫 객체만 생성</text>
+  <rect x="490" y="330" width="220" height="60" rx="16" class="accent"/>
+  <text x="600" y="368" text-anchor="middle" class="small ink">첫 객체 삭제</text>
 
-  <rect x="70" y="320" width="260" height="95" class="warn"/>
-  <text x="105" y="370" class="label ink">배경 업로드 실패</text>
-  <rect x="330" y="320" width="340" height="95" class="warn"/>
-  <text x="365" y="370" class="small ink">logo object</text>
-  <rect x="670" y="320" width="260" height="95" class="accent"/>
-  <text x="705" y="370" class="small ink">logo 삭제</text>
-  <rect x="930" y="320" width="200" height="95" class="warn"/>
-  <text x="965" y="370" class="small ink">원래 예외</text>
+  <rect x="810" y="180" width="310" height="250" rx="26" class="card"/>
+  <text x="965" y="235" text-anchor="middle" class="label ink">3. DB 저장 실패</text>
+  <text x="965" y="285" text-anchor="middle" class="small muted">두 객체 모두 생성</text>
+  <rect x="855" y="320" width="220" height="82" rx="16" class="accent"/>
+  <text x="965" y="354" text-anchor="middle" class="small ink">두 번째 삭제</text>
+  <text x="965" y="382" text-anchor="middle" class="small ink">첫 객체 삭제</text>
 
-  <rect x="70" y="415" width="260" height="95" class="warn"/>
-  <text x="105" y="465" class="label ink">DB 저장 실패</text>
-  <rect x="330" y="415" width="340" height="95" class="warn"/>
-  <text x="365" y="455" class="small ink">logo object</text>
-  <text x="365" y="485" class="small ink">background object</text>
-  <rect x="670" y="415" width="260" height="95" class="accent"/>
-  <text x="705" y="455" class="small ink">background 삭제</text>
-  <text x="705" y="485" class="small ink">logo 삭제</text>
-  <rect x="930" y="415" width="200" height="95" class="warn"/>
-  <text x="965" y="465" class="small ink">원래 예외</text>
-
-  <rect x="70" y="555" width="1060" height="70" rx="18" class="accent"/>
-  <text x="105" y="598" class="label ink">원칙: 보상 삭제 실패는 warn 로그로 남기고, 최초 실패 원인을 덮지 않는다.</text>
+  <rect x="190" y="505" width="820" height="82" rx="22" class="accent"/>
+  <text x="600" y="545" text-anchor="middle" class="label ink">원칙</text>
+  <text x="600" y="575" text-anchor="middle" class="small ink">보상 실패는 로그로 남기고, 최초 실패 원인은 덮지 않는다</text>
 </svg>

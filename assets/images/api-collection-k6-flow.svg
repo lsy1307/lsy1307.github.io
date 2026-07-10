@@ -1,58 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">요청 컬렉션 기반 k6 스크립트 생성 흐름</title>
-  <desc id="desc">GitHub Actions가 API 요청 컬렉션을 가져오고 선택된 그룹만 k6 스크립트로 변환한 뒤 부하 테스트를 실행하는 흐름</desc>
+  <desc id="desc">요청 컬렉션을 가져와 API 그룹을 선택하고 k6 스크립트를 생성한 뒤 실행 요약을 남기는 흐름</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#171a18"/>
     </marker>
     <style>
-      .bg{fill:#f5f4ef}.panel{fill:#fffef9;stroke:#171a18;stroke-width:3}.soft{fill:#ebeae4;stroke:#171a18;stroke-width:2}.accent{fill:#baff3e;stroke:#171a18;stroke-width:3}.danger{fill:#fffef9;stroke:#7cab22;stroke-width:3;stroke-dasharray:10 8}.line{stroke:#171a18;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#7cab22;stroke-width:3;fill:none;stroke-dasharray:8 8;marker-end:url(#arrow)}.muted{fill:#67706a}.ink{fill:#171a18}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:25px;font-weight:850}.small{font-size:20px;font-weight:700}.tiny{font-size:17px;font-weight:700}
+      .bg{fill:#f5f4ef}.card{fill:#fffef9;stroke:#171a18;stroke-width:3}.accent{fill:#baff3e;stroke:#171a18;stroke-width:3}.soft{fill:#ebeae4;stroke:#171a18;stroke-width:2}.guard{fill:#fffef9;stroke:#7cab22;stroke-width:3;stroke-dasharray:10 8}.line{stroke:#171a18;stroke-width:3;fill:none;marker-end:url(#arrow)}.muted{fill:#67706a}.ink{fill:#171a18}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:27px;font-weight:850}.small{font-size:19px;font-weight:700}.tiny{font-size:16px;font-weight:700}
     </style>
   </defs>
   <rect class="bg" width="1200" height="675"/>
-  <text x="70" y="78" class="title ink">API collection → k6 script</text>
-  <text x="70" y="114" class="small muted">요청 예시를 단일 출처로 삼고, 실행 시점에 선택된 API 그룹만 부하 테스트로 변환</text>
+  <text x="70" y="78" class="title ink">Request collection → k6</text>
+  <text x="70" y="114" class="small muted">요청 예시를 단일 출처로 두고, 실행 시점에 부하 테스트 스크립트로 변환</text>
 
-  <rect x="70" y="190" width="235" height="130" rx="24" class="accent"/>
-  <text x="110" y="240" class="label ink">Request</text>
-  <text x="110" y="272" class="label ink">collection</text>
-  <text x="110" y="300" class="tiny ink">method · headers · body</text>
+  <rect x="70" y="190" width="220" height="125" rx="24" class="accent"/>
+  <text x="180" y="245" text-anchor="middle" class="label ink">요청 컬렉션</text>
+  <text x="180" y="280" text-anchor="middle" class="small ink">method · body</text>
 
-  <rect x="420" y="165" width="290" height="180" rx="28" class="panel"/>
-  <text x="460" y="220" class="label ink">Workflow inputs</text>
-  <text x="460" y="255" class="small muted">collection version</text>
-  <text x="460" y="286" class="small muted">API group switches</text>
-  <text x="460" y="317" class="small muted">dangerous request guard</text>
+  <rect x="370" y="190" width="220" height="125" rx="24" class="card"/>
+  <text x="480" y="245" text-anchor="middle" class="label ink">그룹 선택</text>
+  <text x="480" y="280" text-anchor="middle" class="small muted">실행 범위 입력</text>
 
-  <rect x="830" y="190" width="285" height="130" rx="24" class="panel"/>
-  <text x="875" y="240" class="label ink">Generator</text>
-  <text x="875" y="272" class="small muted">parse request blocks</text>
-  <text x="875" y="300" class="tiny muted">filter · transform · summarize</text>
+  <rect x="670" y="190" width="220" height="125" rx="24" class="card"/>
+  <text x="780" y="245" text-anchor="middle" class="label ink">스크립트 생성</text>
+  <text x="780" y="280" text-anchor="middle" class="small muted">필터 · 변환</text>
 
-  <rect x="185" y="450" width="250" height="120" rx="24" class="panel"/>
-  <text x="225" y="500" class="label ink">Generated k6</text>
-  <text x="225" y="532" class="small muted">selected requests only</text>
+  <rect x="970" y="190" width="160" height="125" rx="24" class="accent"/>
+  <text x="1050" y="245" text-anchor="middle" class="label ink">k6 실행</text>
+  <text x="1050" y="280" text-anchor="middle" class="small ink">부하 테스트</text>
 
-  <rect x="540" y="450" width="250" height="120" rx="24" class="soft"/>
-  <text x="580" y="500" class="label ink">Summary</text>
-  <text x="580" y="532" class="small muted">selected / skipped</text>
+  <path class="line" d="M290 252 H358"/>
+  <path class="line" d="M590 252 H658"/>
+  <path class="line" d="M890 252 H958"/>
 
-  <rect x="895" y="450" width="220" height="120" rx="24" class="accent"/>
-  <text x="935" y="500" class="label ink">k6 Run</text>
-  <text x="935" y="532" class="small ink">load test</text>
+  <rect x="255" y="410" width="300" height="105" rx="22" class="guard"/>
+  <text x="405" y="454" text-anchor="middle" class="label ink">위험 요청 보호</text>
+  <text x="405" y="488" text-anchor="middle" class="small muted">삭제·차단은 명시 선택</text>
 
-  <rect x="420" y="365" width="290" height="58" rx="18" class="danger"/>
-  <text x="455" y="402" class="small ink">destructive requests: opt-in only</text>
+  <rect x="645" y="410" width="300" height="105" rx="22" class="soft"/>
+  <text x="795" y="454" text-anchor="middle" class="label ink">실행 요약</text>
+  <text x="795" y="488" text-anchor="middle" class="small muted">선택 / 제외 목록 기록</text>
 
-  <path class="line" d="M305 255 H408"/>
-  <path class="line" d="M710 255 H818"/>
-  <path class="line" d="M930 320 C800 410 555 430 435 470"/>
-  <path class="dash" d="M972 320 C880 405 750 430 680 450"/>
-  <path class="line" d="M435 510 H528"/>
-  <path class="line" d="M790 510 H883"/>
-  <path class="dash" d="M565 365 V345"/>
+  <path class="line" d="M480 315 V398"/>
+  <path class="line" d="M780 315 V398"/>
+  <path class="line" d="M555 462 H633"/>
 
-  <text x="336" y="237" class="tiny muted">checkout</text>
-  <text x="742" y="237" class="tiny muted">generate</text>
-  <text x="470" y="605" class="tiny muted">스크립트 자체보다 “어떤 요청을 왜 포함했는지”를 남기는 것이 핵심</text>
+  <text x="600" y="590" text-anchor="middle" class="small muted">기준을 하나로 만들고, 테스트마다 무엇을 실행했는지 남기는 것이 핵심</text>
 </svg>
