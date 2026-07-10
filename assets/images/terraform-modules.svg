@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">Terraform 환경과 모듈 경계</title>
   <desc id="desc">환경별 root module과 재사용 module, 공유 리소스, state backend의 관계</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#171a18"/>
+      <path d="M0,0 L0,6 L9,3 z" fill="#111111"/>
     </marker>
     <style>
-      .bg{fill:#f5f4ef}.card{fill:#fffef9;stroke:#171a18;stroke-width:3}.soft{fill:#ebeae4;stroke:#171a18;stroke-width:2}.accent{fill:#baff3e;stroke:#171a18;stroke-width:3}.line{stroke:#171a18;stroke-width:3;fill:none;marker-end:url(#arrow)}.muted{fill:#67706a}.ink{fill:#171a18}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:26px;font-weight:850}.small{font-size:19px;font-weight:700}.tiny{font-size:16px;font-weight:700}
+      .bg{fill:#f7f7f4}.card{fill:#ffffff;stroke:#111111;stroke-width:3}.soft{fill:#ececea;stroke:#111111;stroke-width:2}.accent{fill:#dededb;stroke:#111111;stroke-width:3}.line{stroke:#111111;stroke-width:3;fill:none;marker-end:url(#arrow)}.muted{fill:#626262}.ink{fill:#111111}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:26px;font-weight:850}.small{font-size:19px;font-weight:700}.tiny{font-size:16px;font-weight:700}
     </style>
   </defs>
   <rect class="bg" width="1200" height="675"/>

@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">OSM 간선 버퍼와 CCTV 공간 조인</title>
   <desc id="desc">미터 좌표계로 변환한 뒤 간선 주변 80미터 버퍼 안의 CCTV 점을 세는 과정</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#171a18"/>
+      <path d="M0,0 L0,6 L9,3 z" fill="#111111"/>
     </marker>
     <style>
-      .bg{fill:#f5f4ef}.card{fill:#fffef9;stroke:#171a18;stroke-width:3}.buffer{fill:#baff3e;opacity:.48;stroke:#7cab22;stroke-width:4}.edge{stroke:#171a18;stroke-width:10;fill:none;stroke-linecap:round}.point{fill:#171a18}.out{fill:#fffef9;stroke:#67706a;stroke-width:3}.line{stroke:#171a18;stroke-width:3;fill:none;marker-end:url(#arrow)}.accent{fill:#baff3e;stroke:#171a18;stroke-width:3}.muted{fill:#67706a}.ink{fill:#171a18}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:26px;font-weight:850}.small{font-size:19px;font-weight:700}.tiny{font-size:16px;font-weight:700}
+      .bg{fill:#f7f7f4}.card{fill:#ffffff;stroke:#111111;stroke-width:3}.buffer{fill:#dededb;opacity:.48;stroke:#8a8a86;stroke-width:4}.edge{stroke:#111111;stroke-width:10;fill:none;stroke-linecap:round}.point{fill:#111111}.out{fill:#ffffff;stroke:#626262;stroke-width:3}.line{stroke:#111111;stroke-width:3;fill:none;marker-end:url(#arrow)}.accent{fill:#dededb;stroke:#111111;stroke-width:3}.muted{fill:#626262}.ink{fill:#111111}text{font-family:Pretendard,'Noto Sans KR',Arial,sans-serif}.title{font-size:38px;font-weight:900}.label{font-size:26px;font-weight:850}.small{font-size:19px;font-weight:700}.tiny{font-size:16px;font-weight:700}
     </style>
   </defs>
   <rect class="bg" width="1200" height="675"/>

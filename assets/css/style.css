@@ -1,12 +1,13 @@
 :root {
-  --ink: #171a18;
-  --muted: #67706a;
-  --paper: #f5f4ef;
-  --panel: #ebeae4;
-  --line: #d5d7d0;
-  --accent: #baff3e;
-  --accent-dark: #7cab22;
-  --white: #fffef9;
+  --ink: #0f0f0f;
+  --muted: #626262;
+  --paper: #f7f7f4;
+  --panel: #ececea;
+  --line: #d2d2cf;
+  --accent: #111111;
+  --accent-dark: #000000;
+  --accent-soft: #dededb;
+  --white: #ffffff;
   --max: 1180px;
   --radius: 18px;
 }
@@ -42,6 +43,7 @@ button, input, textarea { font: inherit; }
   z-index: 100;
   padding: 8px 12px;
   background: var(--accent);
+  color: var(--white);
   transform: translateY(-150%);
 }
 
@@ -84,7 +86,7 @@ button, input, textarea { font: inherit; }
   background: var(--accent);
   border: 2px solid var(--ink);
   border-radius: 50%;
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: 3px 3px 0 var(--line);
 }
 
 .nav-links {
@@ -165,7 +167,7 @@ button, input, textarea { font: inherit; }
   bottom: .06em;
   height: .18em;
   z-index: -1;
-  background: var(--accent);
+  background: var(--accent-soft);
 }
 
 .hero-copy {
@@ -202,7 +204,7 @@ button, input, textarea { font: inherit; }
 
 .button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 0 var(--accent-dark);
+  box-shadow: 0 5px 0 var(--line);
 }
 
 .button.secondary {
@@ -216,13 +218,13 @@ button, input, textarea { font: inherit; }
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px dashed #92978e;
+  border: 1px dashed #989898;
   border-radius: 18px;
   background:
-    linear-gradient(135deg, transparent 49.7%, #d4d7cd 50%, transparent 50.3%),
-    linear-gradient(45deg, transparent 49.7%, #d4d7cd 50%, transparent 50.3%),
-    #e4e5de;
-  color: #60665f;
+    linear-gradient(135deg, transparent 49.7%, #d6d6d2 50%, transparent 50.3%),
+    linear-gradient(45deg, transparent 49.7%, #d6d6d2 50%, transparent 50.3%),
+    #e7e7e3;
+  color: #5f5f5f;
   text-align: center;
 }
 
@@ -246,6 +248,7 @@ button, input, textarea { font: inherit; }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  filter: grayscale(1) saturate(0) contrast(1.05);
 }
 
 .section {
@@ -415,7 +418,7 @@ button, input, textarea { font: inherit; }
   font-weight: 800;
 }
 
-.dark .project-top { color: #aeb5af; }
+.dark .project-top { color: #c7c7c7; }
 
 .project-card h3 {
   margin: auto 0 12px;
@@ -429,7 +432,7 @@ button, input, textarea { font: inherit; }
   color: var(--muted);
 }
 
-.dark p { color: #b5bbb7; }
+.dark p { color: #c9c9c9; }
 
 .project-result {
   margin-top: 28px;
@@ -439,8 +442,8 @@ button, input, textarea { font: inherit; }
 }
 
 .dark .project-result {
-  border-color: #383e3a;
-  color: var(--accent);
+  border-color: #444;
+  color: var(--white);
 }
 
 .about-grid {
@@ -503,7 +506,11 @@ button, input, textarea { font: inherit; }
 .contact {
   padding: 90px 0;
   background: var(--accent);
+  color: var(--white);
 }
+
+.contact .eyebrow { color: #c8c8c8; }
+.contact .eyebrow::before { background: var(--white); }
 
 .contact-grid {
   display: grid;
@@ -529,7 +536,7 @@ button, input, textarea { font: inherit; }
   display: flex;
   justify-content: space-between;
   padding: 13px 0;
-  border-bottom: 1px solid var(--ink);
+  border-bottom: 1px solid #4a4a4a;
   text-decoration: none;
   font-weight: 850;
 }
@@ -537,7 +544,7 @@ button, input, textarea { font: inherit; }
 .site-footer {
   padding: 30px 0;
   background: var(--ink);
-  color: #9fa5a0;
+  color: #b9b9b9;
   font-size: .82rem;
 }
 
@@ -653,7 +660,7 @@ button, input, textarea { font: inherit; }
 
 .article-body p,
 .article-body li {
-  color: #373d39;
+  color: #343434;
 }
 
 .article-body ul,
@@ -666,8 +673,8 @@ button, input, textarea { font: inherit; }
 .callout {
   margin: 34px 0;
   padding: 24px 26px;
-  border-left: 5px solid var(--accent-dark);
-  background: #e9ecdf;
+  border-left: 5px solid var(--ink);
+  background: #eeeeeb;
 }
 
 .callout strong {
@@ -717,6 +724,7 @@ button, input, textarea { font: inherit; }
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--white);
+  filter: grayscale(1) saturate(0) contrast(1.04);
 }
 
 .article-cover .article-image {
@@ -734,14 +742,14 @@ pre {
   padding: 23px;
   border-radius: 14px;
   background: var(--ink);
-  color: #dce6df;
+  color: #ededed;
   font: .84rem/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
 code {
   padding: .15em .35em;
   border-radius: 4px;
-  background: #e2e3dc;
+  background: #e5e5e2;
   font: .88em ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
