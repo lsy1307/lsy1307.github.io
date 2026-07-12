@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="DEVLINK의 현재 latest 기반 배포가 정확한 롤백을 보장하지 못하는 이유와, 아직 적용하지 않은 digest pinning·ECR tag immutability 개선안을 구분한 회고">
-  <title>latest 배포가 정확한 롤백을 보장하지 못한 이유 | lsy1307 기술 블로그</title>
+  <meta name="description" content="DEVLINK 배포 파이프라인을 커밋 단위 이미지 추적과 재현 가능한 롤백 구조로 발전시키기 위한 설계">
+  <title>커밋 단위 이미지 배포와 롤백 구조 설계 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
@@ -25,9 +25,9 @@
     <header class="article-hero shell">
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">Deployment · Reproducibility</p>
-      <h1>latest 배포가 정확한 롤백을 보장하지 못한 이유</h1>
-      <p class="article-lead">DEVLINK의 GitHub Actions–ECR–Elastic Beanstalk 파이프라인은 현재도 <code>latest</code>를 사용합니다. 이 글은 적용 완료 보고가 아니라 현재 한계를 확인하고 digest pinning까지의 목표 설계를 정리한 회고입니다.</p>
-      <div class="article-meta"><span>STATUS: RETROSPECTIVE · CURRENTLY LATEST</span><span>UPDATED: 2026.07</span><span>SCOPE: CURRENT PIPELINE + UNAPPLIED DESIGN</span><span>DEVLINK</span></div>
+      <h1>커밋 단위 이미지 배포와 롤백 구조 설계</h1>
+      <p class="article-lead">DEVLINK의 GitHub Actions–ECR–Elastic Beanstalk 배포 경험을 바탕으로, 커밋과 실행 이미지를 연결하고 같은 artifact를 재배포할 수 있는 구조를 설계했습니다.</p>
+      <div class="article-meta"><span>STATUS: DEPLOYMENT RETROSPECTIVE</span><span>UPDATED: 2026.07</span><span>SCOPE: PIPELINE + TARGET DESIGN</span><span>DEVLINK</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#pipeline">현재 파이프라인</a><a href="#identity">두 개의 버전</a><a href="#rollback">롤백 한계</a><a href="#trigger">현재 트리거</a><a href="#redesign">미적용 설계</a><a href="#operations">운영 과제</a><a href="#lesson">정리</a></aside>

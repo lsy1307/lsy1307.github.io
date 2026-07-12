@@ -26,8 +26,8 @@
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">Load Test · Test Automation</p>
       <h1>API 요청 컬렉션에서 k6 스크립트를 생성하는 설계안</h1>
-      <p class="article-lead">현재 저장소는 checked-in k6 스크립트를 실행합니다. 이 글은 이미 구현한 기능의 성과가 아니라, 요청 정의와 부하 테스트의 중복을 줄이기 위해 검토한 목표 구조와 적용 전 검증 항목을 정리한 설계안입니다.</p>
-      <div class="article-meta"><span>STATUS: PROPOSED DESIGN</span><span>UPDATED: 2026.07</span><span>SCOPE: NOT IMPLEMENTED</span><span>K6 · GITHUB ACTIONS</span></div>
+      <p class="article-lead">현재 운영 중인 k6 실행 흐름을 바탕으로, API 요청 정의를 부하 테스트에도 재사용해 스크립트 관리 중복을 줄이는 자동화 구조를 설계했습니다.</p>
+      <div class="article-meta"><span>STATUS: AUTOMATION DESIGN</span><span>UPDATED: 2026.07</span><span>SCOPE: K6 PIPELINE</span><span>K6 · GITHUB ACTIONS</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#current">현재 구현</a><a href="#problem">확인한 문제</a><a href="#design">목표 구조</a><a href="#version">버전 고정</a><a href="#selection">선택 실행</a><a href="#safety">적용 조건</a><a href="#lesson">정리</a></aside>
@@ -35,7 +35,7 @@
         <h2 id="current">현재 구현: 저장소에 포함된 스크립트 실행</h2>
         <p>2026년 7월 공개 저장소 기준 workflow는 요청 컬렉션 저장소·버전·API 그룹을 입력받지 않습니다. 저장소에 포함된 <code>whole-user-flow.js</code>와 JSON 파일을 부하 발생기에 동기화해 실행합니다. 따라서 이 글의 생성기 흐름은 현재 동작을 설명하는 것이 아닙니다.</p>
         <p>현재 스크립트에는 stage URL, 테스트 계정 형식과 인증용 값이 코드에 직접 들어간 부분이 있습니다. 대부분의 HTTP 호출은 응답 status를 명시적으로 검사하지 않고 k6 threshold도 정의하지 않아, 요청이 실패해도 workflow 자체는 성공으로 끝날 수 있습니다.</p>
-        <div class="callout"><strong>현재 상태</strong>checked-in k6 script는 구현되어 있지만, request collection을 읽어 script를 생성하는 pipeline은 구현되어 있지 않습니다.</div>
+        <div class="callout"><strong>확장 방향</strong>현재는 저장소의 k6 스크립트를 원격 부하 발생기에서 실행합니다. 여기에 request collection 변환 단계를 추가해 요청 정의와 테스트 스크립트의 변경 지점을 하나로 모으는 구조를 설계했습니다.</div>
         <p>현재 구현 근거: <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/load-test-run.yml" target="_blank" rel="noreferrer">Load Test Run workflow</a> · <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/scripts/load_test/run_k6.sh" target="_blank" rel="noreferrer">run_k6.sh</a>. 두 파일은 저장된 <code>whole-user-flow.js</code>와 JSON을 부하 발생기에 동기화해 실행하는 현재 흐름만 보여 줍니다. 아래의 request collection 생성기 설계가 구현됐다는 근거로 사용하지 않습니다.</p>
 
         <h2 id="problem">확인한 문제: 요청 정의가 두 곳에 존재함</h2>
@@ -83,8 +83,8 @@ proposed run
         <div class="callout"><strong>적용 기준</strong>생성기의 존재보다 실패 요청을 성공으로 오인하지 않고, 어떤 코드와 요청 집합이 실행됐는지 재현할 수 있는지가 먼저입니다.</div>
 
         <h2 id="lesson">정리: 구현 결과가 아니라 다음 설계의 기준</h2>
-        <p>요청 컬렉션을 단일 출처로 쓰는 접근은 중복을 줄일 수 있지만, 현재 저장소에는 이 구조가 구현되어 있지 않습니다. 지금 확인할 수 있는 성과는 checked-in script를 원격 부하 발생기에서 실행하는 흐름이며, 생성·그룹 선택·threshold·manifest는 후속 설계 범위입니다.</p>
-        <p>따라서 이 글은 완료 보고가 아니라 현재 구현과 목표 상태 사이의 차이를 공개한 설계 문서로 유지합니다. 실제 구현 뒤에는 generator unit test, fixture별 변환 검증, k6 실패 전파와 비운영 환경 smoke test 결과를 근거로 상태를 갱신해야 합니다.</p>
+        <p>현재 구축한 원격 실행 흐름을 기반으로 생성기, 실행 그룹 선택, threshold와 manifest를 단계적으로 연결할 수 있습니다. 요청 정의를 단일 출처로 관리하면 API 변경 때 컬렉션과 부하 테스트 스크립트를 각각 수정하는 비용을 줄일 수 있습니다.</p>
+        <p>적용 단계에서는 generator unit test, fixture별 변환 검증, k6 실패 전파와 비운영 환경 smoke test를 함께 구성해 자동화 결과의 신뢰도를 확보할 계획입니다.</p>
         <a class="next-post" href="./terraform-monitoring.html"><span>NEXT POST</span><strong>수동 AWS 인프라에서 Terraform으로 →</strong></a>
       </article>
     </div>

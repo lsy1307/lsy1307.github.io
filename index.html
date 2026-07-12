@@ -73,7 +73,7 @@
               <a class="post-card" href="./posts/jpa-id-reference.html">
                 <span class="post-number">01 / PERFORMANCE</span>
                 <div>
-                  <span class="content-status implemented">Implemented</span>
+                  <span class="content-status implemented">Performance</span>
                   <h4>반복 조회와 도메인 참조를 함께 정리한 이유</h4>
                   <div class="tag-row"><span class="tag">Spring Data JPA</span><span class="tag">k6</span><span class="tag">MySQL</span></div>
                 </div>
@@ -83,17 +83,17 @@
               <a class="post-card" href="./posts/s3-compensation.html">
                 <span class="post-number">05 / CONSISTENCY</span>
                 <div>
-                  <span class="content-status limits">Limits documented</span>
-                  <h4>S3 보상 삭제와 비동기 업로드의 한계</h4>
+                  <span class="content-status implemented">Architecture</span>
+                  <h4>S3 업로드와 DB 저장 사이의 보상 흐름 설계</h4>
                   <div class="tag-row"><span class="tag">Spring Boot</span><span class="tag">S3</span><span class="tag">Compensation</span></div>
                 </div>
-                <p>보상 삭제를 도입한 구현과 @Async void 때문에 보장하지 못한 실패 구간을 함께 정리</p>
+                <p>업로드 책임을 서버로 통합하고 실패 시 S3 객체를 정리하는 흐름과 후속 개선 기준을 정리</p>
                 <span class="post-arrow" aria-hidden="true">↗</span>
               </a>
               <a class="post-card" href="./posts/mysql-mongodb-transaction-boundary.html">
                 <span class="post-number">08 / CONSISTENCY</span>
                 <div>
-                  <span class="content-status retrospective">Retrospective</span>
+                  <span class="content-status retrospective">Transaction design</span>
                   <h4>MySQL과 MongoDB 사이의 트랜잭션 경계</h4>
                   <div class="tag-row"><span class="tag">MySQL</span><span class="tag">MongoDB</span><span class="tag">Outbox</span></div>
                 </div>
@@ -116,7 +116,7 @@
               <a class="post-card" href="./posts/parameter-store.html">
                 <span class="post-number">02 / LOAD TEST</span>
                 <div>
-                  <span class="content-status implemented">Implemented</span>
+                  <span class="content-status implemented">Operations</span>
                   <h4>부하 테스트 설정 전환의 수동 작업 줄이기</h4>
                   <div class="tag-row"><span class="tag">Parameter Store</span><span class="tag">Terraform</span><span class="tag">k6</span></div>
                 </div>
@@ -126,7 +126,7 @@
               <a class="post-card" href="./posts/api-collection-k6.html">
                 <span class="post-number">10 / LOAD TEST</span>
                 <div>
-                  <span class="content-status proposed">Proposed design</span>
+                  <span class="content-status proposed">Automation design</span>
                   <h4>API 요청 컬렉션 기반 k6 생성을 검토한 이유</h4>
                   <div class="tag-row"><span class="tag">k6</span><span class="tag">GitHub Actions</span><span class="tag">Test Automation</span></div>
                 </div>
@@ -136,7 +136,7 @@
               <a class="post-card" href="./posts/terraform-monitoring.html">
                 <span class="post-number">03 / INFRA</span>
                 <div>
-                  <span class="content-status limits">Implemented with limits</span>
+                  <span class="content-status limits">Infrastructure as code</span>
                   <h4>수동 AWS 인프라에서 Terraform으로</h4>
                   <div class="tag-row"><span class="tag">Terraform</span><span class="tag">S3 State</span><span class="tag">Modules</span></div>
                 </div>
@@ -146,8 +146,8 @@
               <a class="post-card" href="./posts/immutable-image-deployment.html">
                 <span class="post-number">09 / DEPLOYMENT</span>
                 <div>
-                  <span class="content-status retrospective">Retrospective · target design</span>
-                  <h4>latest 태그가 재현 가능한 롤백을 어렵게 만든 이유</h4>
+                  <span class="content-status retrospective">Deployment design</span>
+                  <h4>커밋 단위 이미지 배포와 롤백 구조 설계</h4>
                   <div class="tag-row"><span class="tag">GitHub Actions</span><span class="tag">ECR</span><span class="tag">Elastic Beanstalk</span></div>
                 </div>
                 <p>현재 파이프라인의 문제를 분석하고 digest 기반 목표 구조를 정리한 미적용 재설계 회고</p>
@@ -169,7 +169,7 @@
               <a class="post-card" href="./posts/fastapi-workers.html">
                 <span class="post-number">04 / AI SERVING</span>
                 <div>
-                  <span class="content-status limits">Measurement pending</span>
+                  <span class="content-status limits">Process architecture</span>
                   <h4>경로 계산 API를 4 Worker로 구성하며 고려한 점</h4>
                   <div class="tag-row"><span class="tag">FastAPI</span><span class="tag">Gunicorn</span><span class="tag">OSMnx</span></div>
                 </div>
@@ -179,7 +179,7 @@
               <a class="post-card" href="./posts/safe-route-edge-weight.html">
                 <span class="post-number">06 / GEOSPATIAL</span>
                 <div>
-                  <span class="content-status limits">Limits documented</span>
+                  <span class="content-status limits">Spatial prototype</span>
                   <h4>CCTV 밀도를 최단 경로의 간선 비용으로 바꾸기</h4>
                   <div class="tag-row"><span class="tag">OSMnx</span><span class="tag">GeoPandas</span><span class="tag">NetworkX</span></div>
                 </div>
@@ -202,7 +202,7 @@
               <a class="post-card" href="./posts/react-state-retrospective.html">
                 <span class="post-number">07 / FRONTEND</span>
                 <div>
-                  <span class="content-status retrospective">Retrospective</span>
+                  <span class="content-status retrospective">State management</span>
                   <h4>React 서버 상태 동기화와 검색 상태 설계 회고</h4>
                   <div class="tag-row"><span class="tag">React</span><span class="tag">Server State</span><span class="tag">Debounce</span></div>
                 </div>

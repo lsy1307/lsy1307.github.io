@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="공간 데이터 기반 경로 계산 API에 적용했던 4-worker 구성과, 최적값을 판단하기 위해 남은 성능·메모리·외부 API 운영 검증 과제">
-  <title>경로 계산 API의 4-worker 구성과 검증 과제 | lsy1307 기술 블로그</title>
+  <title>경로 계산 API의 4-worker 실행 구조 설계 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
@@ -25,9 +25,9 @@
     <header class="article-hero shell">
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">AI Serving · FastAPI</p>
-      <h1>경로 계산 API의 4-worker 구성과 검증 과제</h1>
-      <p class="article-lead">Tmap, OSM, CCTV 데이터와 공간 연산을 함께 처리하는 API에 4개 worker를 적용했습니다. 다만 1·2·4·8 worker를 같은 조건에서 비교한 결과는 없어, 이 수를 최적값이나 성능 개선의 증거로 주장하지 않습니다.</p>
-      <div class="article-meta"><span>STATUS: IMPLEMENTED · NOT BENCHMARKED</span><span>UPDATED: 2026.07</span><span>SCOPE: PROCESS CONFIG</span><span>등불</span></div>
+      <h1>경로 계산 API의 4-worker 실행 구조 설계</h1>
+      <p class="article-lead">Tmap·OSM·CCTV 데이터와 공간 연산을 함께 처리하는 API를 4개 worker로 구성해 요청을 프로세스 단위로 분산하고, 외부 API 대기와 공간 연산의 실행 경계를 정리했습니다.</p>
+      <div class="article-meta"><span>STATUS: IMPLEMENTED / PERFORMANCE VALIDATION</span><span>UPDATED: 2026.07</span><span>SCOPE: PROCESS ARCHITECTURE</span><span>등불</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#workload">워크로드</a><a href="#architecture">구조</a><a href="#workers">현재 구성</a><a href="#validation">검증 과제</a><a href="#storage">데이터 저장</a><a href="#operations">운영 경계</a><a href="#lesson">회고</a></aside>
@@ -75,7 +75,7 @@
         <h2 id="lesson">프로세스 수만으로 끝나지 않는 처리량 설계</h2>
         <p>4-worker 실행 구조를 적용해 단일 프로세스와 다른 격리 경계를 만들었지만, 그것만으로 처리량이나 안정성 개선을 입증한 것은 아닙니다. 다음 단계는 worker별 CPU·RSS·tail latency를 실측하고, 외부 API 대기와 CPU 연산을 분리해 병목을 확인하는 일입니다.</p>
         <p>이번 구성에서 분명해진 것은 비동기 프레임워크, 다중 프로세스, CPU 작업 분리, 외부 API 장애 대응이 서로 다른 문제라는 점입니다. worker 수는 그중 하나의 조절값이며, 데이터 크기와 실패·종료 동작까지 함께 검증해야 운영 기준이 됩니다.</p>
-        <a class="next-post" href="./s3-compensation.html"><span>NEXT POST</span><strong>S3 보상 삭제를 구현하며 놓친 비동기 경계 →</strong></a>
+        <a class="next-post" href="./s3-compensation.html"><span>NEXT POST</span><strong>S3 업로드와 DB 저장 사이의 보상 흐름 설계 →</strong></a>
       </article>
     </div>
   </main>

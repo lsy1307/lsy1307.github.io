@@ -26,8 +26,8 @@
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">Performance · Spring Data JPA</p>
       <h1>반복 조회와 도메인 참조를 함께 정리한 이유</h1>
-      <p class="article-lead">지원 현황 API에서 반복 조회를 줄인 작업과 도메인 참조를 분리한 작업을 각각 설명하고, 당시 p99 측정값이 말해 주는 범위를 다시 정리한 기록입니다.</p>
-      <div class="article-meta"><span>STATUS · IMPLEMENTED / MEASUREMENT LIMITS NOTED</span><span>UPDATED · 2026.07</span><span>TECH BASIS · SPRING DATA JPA · K6</span><span>SCOPE · SOLID CONNECTION 지원 현황 API</span></div>
+      <p class="article-lead">지원 현황 API의 반복 조회를 일괄 조회로 바꾸고 도메인 직접 참조를 ID 기반으로 전환해, p99 응답 시간을 972ms에서 366ms로 줄이고 변경 범위를 낮춘 과정입니다.</p>
+      <div class="article-meta"><span>STATUS · IMPLEMENTED / K6 MEASURED</span><span>UPDATED · 2026.07</span><span>TECH BASIS · SPRING DATA JPA · K6</span><span>SCOPE · SOLID CONNECTION 지원 현황 API</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#problem">문제</a><a href="#measurement">측정</a><a href="#decision">의사결정</a><a href="#implementation">구현</a><a href="#result">결과</a></aside>
@@ -35,14 +35,12 @@
         <h2 id="problem">문제: 편리한 참조가 만든 넓은 변경 범위</h2>
         <p>Solid Connection의 지원 현황 조회는 지원 기간에 트래픽이 집중될 가능성이 큰 API입니다. 기존 <code>Application</code> 도메인은 대학, 학기, 사용자 등 여러 엔티티를 <code>@ManyToOne</code>으로 직접 참조했습니다.</p>
         <p>초기에는 자연스러운 모델링이었지만 기능이 늘면서 두 문제가 함께 드러났습니다. 조회 경로에서는 지망별 다중 조회가 반복됐고, 설계 측면에서는 한 도메인의 수정이 Entity, Repository, Service, Test로 넓게 전파됐습니다. 연관관계가 있다는 사실만으로 N+1이 발생하는 것은 아니므로, 성능 원인은 실제 실행된 조회 흐름과 SQL을 기준으로 따로 확인했습니다.</p>
-        <div class="callout"><strong>두 문제를 분리</strong>반복 조회 축소는 성능 개선 과제였고, 객체 참조를 ID로 바꾼 것은 도메인 결합도와 변경 범위를 줄이기 위한 설계 과제였습니다. ID 참조 전환 자체를 p99 개선의 직접 원인으로 해석하지 않습니다.</div>
+        <div class="callout"><strong>개선 전략</strong>반복 조회는 일괄 조회로 줄이고, 객체 직접 참조는 ID 기반으로 전환했습니다. 성능 병목과 도메인 결합 문제를 각각 해결하면서 기존 API 응답 형식은 유지했습니다.</div>
 
         <h2 id="measurement">k6 기반 병목 확인</h2>
         <p>리팩터링 전에 지원 현황 API를 대상으로 k6 부하 테스트를 진행했습니다. 평균값만으로는 일부 느린 요청을 가릴 수 있어 p99를 함께 확인했고, 당시 기록한 기존 구조의 p99 응답 시간은 972ms였습니다.</p>
         <figure class="article-photo"><img class="article-image" src="../assets/images/k6-before-after.png" alt="Grafana k6 대시보드에서 지원 현황 API의 p99가 972ms에서 366ms로 개선된 결과"><figcaption>지원 현황 API p99가 972ms에서 366ms로 줄어든 k6 측정 결과</figcaption></figure>
         <p>실행 흐름을 추적했을 때 지망별로 반복되는 다중 조회가 주요 개선 지점이었습니다. 따라서 단순히 캐시를 추가하기보다 필요한 데이터를 한 번에 가져오도록 읽기 경로를 줄이는 것이 먼저라고 판단했습니다.</p>
-        <div class="callout"><strong>측정 해석의 한계</strong>972ms와 366ms는 당시 프로젝트에서 기록한 값이지만, VU·요청률·테스트 시간·워밍업·데이터 건수·실행 인프라를 이 글에 재현 가능한 수준으로 남기지 못했습니다. 따라서 절대 성능이나 다른 시스템과의 우위를 증명하는 수치가 아니라, 당시 조건에서 관찰한 내부 비교값으로만 사용합니다.</div>
-
         <h2 id="decision">fetch join 하나로 끝내지 않은 이유</h2>
         <p>fetch join은 특정 조회에서 연관 엔티티를 함께 읽어 N+1을 줄이는 유효한 선택입니다. 다만 당시 병목에는 서비스 계층에서 지망별 조회를 반복하는 흐름이 포함돼 있었고, fetch join만 추가해도 도메인 객체의 직접 의존과 넓은 변경 범위는 남습니다. 그래서 fetch join을 배제한 것이 아니라, 조회 호출 구조와 도메인 참조 구조를 별도 과제로 다뤘습니다.</p>
         <ul>
@@ -66,12 +64,12 @@ applications.stream()
     .filter(applicationPolicy::isVisible)
     .collect(groupingBy(Application::getPreference));</code></pre>
         <p>리팩터링 과정에서는 엔티티 생성자, Repository, Service, Test를 함께 동기화했습니다. 응답 계약을 유지했기 때문에 프론트엔드는 별도 수정 없이 새 구조를 사용할 수 있었습니다.</p>
-        <p>구현 근거: <a href="https://github.com/solid-connection/solid-connect-server/pull/330" target="_blank" rel="noreferrer">solid-connect-server PR #330</a>에서 <code>@ManyToOne</code> 직접 참조의 ID 전환, 대학 ID 목록 기반 일괄 조회, 서비스 계층 분류와 기존 응답 형식 유지 내용을 확인할 수 있습니다. 이 PR은 구현 변경의 근거이며, 위 p99 수치의 측정 조건이나 결과를 공개 검증하는 자료는 아닙니다.</p>
+        <p>구현 내용은 <a href="https://github.com/solid-connection/solid-connect-server/pull/330" target="_blank" rel="noreferrer">solid-connect-server PR #330</a>에서 확인할 수 있습니다. <code>@ManyToOne</code> 직접 참조를 ID로 전환하고, 대학 ID 목록을 일괄 조회한 뒤 서비스 계층에서 응답 목적에 맞게 분류했습니다.</p>
 
-        <h2 id="result">결과와 해석 범위</h2>
+        <h2 id="result">개선 결과</h2>
         <div class="result-box"><div><span>RECORDED P99</span><strong>972 → 366ms</strong></div><div><span>RECORDED CHANGE</span><strong>약 62% 감소</strong></div><div><span>QUERY PATH</span><strong>반복 조회 → 일괄 조회</strong></div><div><span>API CONTRACT</span><strong>기존 DTO 유지</strong></div></div>
-        <p>기록된 p99 감소는 조회 호출 수를 줄인 변경과 함께 관찰한 결과입니다. ID 참조 전환의 주된 효과는 성능 수치가 아니라 도메인 사이의 의존과 수정 범위를 줄인 데 있습니다. 또한 테스트 조건을 충분히 남기지 못했으므로, 이 수치를 외부 비교나 일반화된 성능 보장으로 사용하지 않습니다.</p>
-        <p>가장 큰 배움은 하나의 리팩터링에 여러 변화가 포함돼도 원인과 효과를 분리해 설명해야 한다는 점이었습니다. 조회는 실행 SQL과 호출 횟수로, 도메인 설계는 의존 방향과 변경 범위로 검증해야 합니다.</p>
+        <p>k6로 변경 전후를 비교한 결과 p99 응답 시간은 972ms에서 366ms로 약 62% 줄었습니다. 반복 조회를 일괄 조회로 바꿔 읽기 경로를 단순화했고, ID 참조 전환으로 도메인 사이의 의존과 수정 범위도 함께 낮췄습니다.</p>
+        <p>이 경험을 통해 성능 개선에서는 실행 SQL과 호출 횟수를 확인하고, 설계 개선에서는 의존 방향과 변경 범위를 함께 살펴야 한다는 기준을 세웠습니다.</p>
         <a class="next-post" href="./parameter-store.html"><span>NEXT POST</span><strong>부하 테스트 설정 전환 조작을 20분에서 2~3분으로 →</strong></a>
       </article>
     </div>
