@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -27,7 +27,7 @@
       <p class="eyebrow">Spring advanced · Test</p>
       <h1>Spring 테스트 슬라이스와 통합 테스트 기준</h1>
       <p class="article-lead">테스트는 많을수록 좋은 것이 아니라, 실패했을 때 원인을 좁혀주는 방식으로 나뉘어야 합니다. 빠른 테스트와 실제 환경에 가까운 테스트의 역할이 다릅니다.</p>
-      <div class="article-meta"><span>STUDY NOTE</span><span>7 MIN READ</span><span>SPRING TEST</span></div>
+      <div class="article-meta"><span>UPDATED 2026.07</span><span>SPRING 6.2+</span><span>BOOT 3.4+</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#unit">단위 테스트</a><a href="#webmvc">WebMvcTest</a><a href="#datajpa">DataJpaTest</a><a href="#boot">SpringBootTest</a><a href="#strategy">전략</a></aside>
@@ -44,24 +44,29 @@
         <p>단위 테스트는 실패 원인이 좁고 실행 속도가 빠릅니다. 가능한 많은 비즈니스 규칙은 이 레벨에서 검증하는 편이 좋습니다.</p>
 
         <h2 id="webmvc"><code>@WebMvcTest</code>: Controller 계층</h2>
-        <p><code>@WebMvcTest</code>는 MVC 관련 Bean만 올려 Controller 요청/응답을 검증합니다. Service는 mock으로 대체하는 경우가 많습니다.</p>
+        <p><code>@WebMvcTest</code>는 전체 애플리케이션 대신 MVC 관련 구성과 지정한 Controller를 중심으로 Context를 올립니다. 필요한 Service 협력 객체는 test context의 mock으로 대체할 수 있습니다. Spring Security가 classpath에 있으면 보안 filter도 테스트에 관여할 수 있으므로 인증·CSRF 요구를 실제 정책대로 검증합니다.</p>
         <pre><code>@WebMvcTest(MemberController.class)
 class MemberControllerTest {
-    @Autowired MockMvc mockMvc;
-    @MockBean MemberService memberService;
+    @Autowired
+    MockMvc mockMvc;
+
+    @MockitoBean
+    MemberService memberService;
 }</code></pre>
-        <p>request body validation, status code, response json 구조처럼 HTTP 계약을 확인하기 좋습니다.</p>
+        <p><code>@MockitoBean</code>은 Spring Framework 6.2에 추가된 Bean override annotation입니다. Spring Boot의 <code>@MockBean</code>은 3.4부터 deprecated이며 4.0 제거 대상으로 안내되었습니다. Boot 3.3 이하를 유지하는 프로젝트라면 해당 버전에서는 <code>@MockBean</code>을 사용하고, annotation 이름만 섞어 쓰지 않습니다.</p>
+        <p>request body validation, status code, response JSON 구조처럼 HTTP 계약을 확인하기 좋습니다.</p>
 
         <h2 id="datajpa"><code>@DataJpaTest</code>: Repository와 mapping</h2>
-        <p><code>@DataJpaTest</code>는 JPA 관련 Bean을 중심으로 테스트합니다. Entity mapping, query method, JPQL, custom repository가 의도대로 동작하는지 확인할 수 있습니다.</p>
+        <p><code>@DataJpaTest</code>는 JPA 관련 Bean을 중심으로 테스트합니다. Entity mapping, query method, JPQL, custom repository가 의도대로 동작하는지 확인할 수 있습니다. 기본적으로 각 테스트를 transaction으로 감싸 rollback하지만, 실제 commit 시점 제약조건까지 확인해야 한다면 명시적으로 flush하거나 별도 통합 테스트를 둡니다.</p>
         <pre><code>@DataJpaTest
 class MemberRepositoryTest {
     @Autowired MemberRepository memberRepository;
 }</code></pre>
-        <p>실제 운영 DB와 방언 차이가 중요한 쿼리라면 H2만 믿기보다 Testcontainers로 MySQL/PostgreSQL을 띄우는 방식을 고려합니다.</p>
+        <p>테스트 DB 자동 설정은 Spring Boot 버전과 datasource 구성에 따라 달라질 수 있습니다. 운영 DB 방언, locking, native query가 중요하면 embedded DB 결과만 믿지 말고 Testcontainers와 <code>@ServiceConnection</code> 또는 명시적 datasource 설정으로 같은 종류의 DB를 사용합니다.</p>
 
         <h2 id="boot"><code>@SpringBootTest</code>: 전체 Context</h2>
-        <p><code>@SpringBootTest</code>는 애플리케이션 Context를 넓게 올립니다. 설정, Bean wiring, 트랜잭션, 외부 연동 mock까지 포함해 실제 흐름에 가깝게 검증할 수 있습니다.</p>
+        <p><code>@SpringBootTest</code>는 애플리케이션 Context를 넓게 올립니다. 기본 <code>webEnvironment = MOCK</code>는 실제 서버를 열지 않습니다. 실제 port까지 필요한 경우 <code>RANDOM_PORT</code>를, servlet 환경에서 <code>MockMvc</code>를 쓸 경우 <code>@AutoConfigureMockMvc</code>를 함께 선택합니다.</p>
+        <p>Context를 넓게 올린다고 외부 시스템까지 자동으로 실제와 같아지는 것은 아닙니다. DB·메시지 브로커·외부 API를 실제 대역, container, mock 중 무엇으로 검증하는지 테스트 이름과 설정에 드러냅니다.</p>
         <p>대신 느립니다. 모든 테스트를 통합 테스트로 만들면 피드백이 늦어지고 실패 원인도 넓어집니다.</p>
 
         <h2 id="strategy">테스트 선택 전략</h2>
@@ -71,7 +76,7 @@ class MemberRepositoryTest {
           <li>쿼리와 mapping은 <code>@DataJpaTest</code></li>
           <li>주요 사용자 시나리오는 <code>@SpringBootTest</code></li>
         </ul>
-        <div class="callout"><strong>기준</strong>테스트가 실패했을 때 “어느 층이 깨졌는지” 바로 좁혀지면 좋은 테스트 구조입니다. 빠른 테스트를 많이 두고, 느린 통합 테스트는 핵심 경로에 집중합니다.</div>
+        <div class="callout"><strong>기준</strong>annotation 이름만 보고 테스트 범위를 단정하지 말고 실제로 로드된 Bean, DB, security filter와 외부 의존성을 확인합니다. 빠른 테스트는 규칙과 계약에, 느린 통합 테스트는 핵심 경로와 wiring에 집중합니다.</div>
         <a class="next-post" href="./spring-security-basic.html"><span>NEXT NOTE</span><strong>Spring Security 인증·인가 흐름 기본 →</strong></a>
       </article>
     </div>

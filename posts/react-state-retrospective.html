@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="댓글 변경 후 서버 상태 재검증과 멤버 검색 상태 분리를 돌아보며 React 상태 설계의 기준을 정리한 기록">
+  <meta name="description" content="댓글 변경 후 재검증은 유지하고, 효과가 없었던 debounce와 중복 파생 상태는 실패로 남긴 React 구현 회고와 미적용 재설계안">
   <title>React 서버 상태 동기화와 검색 상태 설계 회고 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -26,8 +26,8 @@
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">React · State Design</p>
       <h1>React 서버 상태 동기화와 검색 상태 설계 회고</h1>
-      <p class="article-lead">댓글 변경 후 두 API를 재검증한 선택과 멤버 검색의 원본·결과 상태 분리를 돌아보며, 당시 구현의 장점과 debounce의 한계를 함께 정리했습니다.</p>
-      <div class="article-meta"><span>RETROSPECTIVE</span><span>9 MIN READ</span><span>READ ME</span></div>
+      <p class="article-lead">댓글 변경 후 두 API를 재검증한 선택은 구현 성과로, 클릭 기반 검색에 debounce를 붙인 선택은 효과가 없었던 실패로 구분해 정리했습니다.</p>
+      <div class="article-meta"><span>STATUS · IMPLEMENTATION RETROSPECTIVE + UNIMPLEMENTED REDESIGN</span><span>UPDATED · 2026.07</span><span>TECH BASIS · REACT · PROMISE.ALL · DEBOUNCE</span><span>SCOPE · READ ME 공지·멤버 화면</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#two-sources">두 서버 상태</a><a href="#revalidate">재검증</a><a href="#search">검색 상태</a><a href="#debounce">debounce 한계</a><a href="#redesign">재설계</a><a href="#lesson">회고</a></aside>
@@ -47,7 +47,7 @@ await Promise.all([
   fetchNoticeComments()
 ]);</code></pre>
         <p>서버 응답을 source of truth로 사용하기 때문에 클라이언트가 댓글 수 계산 규칙을 복제하지 않아도 됩니다. 작성·삭제 권한이나 soft delete 정책이 서버에서 적용돼도 최종 응답 기준으로 화면을 다시 맞출 수 있습니다.</p>
-        <p>대신 mutation마다 두 번의 GET 요청이 추가되고, 조회 중 loading 처리와 실패 정책이 필요합니다. 상세 조회는 성공했지만 댓글 조회가 실패하는 부분 성공도 고려해야 합니다. 작은 서비스에서는 단순하고 안전한 선택이었지만 규모가 커지면 cache invalidation 정책으로 발전시킬 지점입니다.</p>
+        <p>대신 mutation마다 두 번의 GET 요청이 추가되고, 조회 중 loading 처리와 실패 정책이 필요합니다. <code>Promise.all</code>은 두 요청을 함께 시작할 뿐 원자성을 만들지 않으므로, 상세 조회는 성공했지만 댓글 조회가 실패하는 부분 성공도 고려해야 합니다. 작은 서비스에서 일관성을 다시 맞추기 위한 단순한 선택이었지만, 요청 수를 줄였거나 실패를 자동 복구했다고 주장할 수는 없습니다.</p>
 
         <h2 id="search">원본 목록과 화면 결과의 분리</h2>
         <p>멤버 검색에서는 서버에서 받은 전체 목록을 <code>allMembers</code>에 보존하고, 화면에 표시할 목록을 <code>results</code>로 분리했습니다.</p>
@@ -59,18 +59,20 @@ await Promise.all([
         <p>검색할 때는 원본 목록을 필터링해 <code>results</code>만 바꾸고, 검색어가 비면 <code>allMembers</code>를 다시 표시했습니다. 검색 해제 시 API를 재호출하지 않고 원본 목록으로 복귀할 수 있다는 장점이 있었습니다.</p>
         <p>다만 <code>results</code>는 <code>allMembers</code>와 검색어에서 계산할 수 있는 파생 상태입니다. 두 배열을 별도 state로 저장하면 원본 목록 갱신 시 결과 목록을 함께 맞춰야 하고, 동기화 지점을 놓칠 가능성이 생깁니다.</p>
 
-        <h2 id="debounce">300ms debounce의 실제 효과</h2>
+        <h2 id="debounce">실패한 선택: 300ms debounce</h2>
         <p>입력값을 300ms 지연하는 custom debounce를 적용했지만 검색은 입력 변경마다 실행되지 않고 Enter 또는 검색 버튼 클릭 시에만 실행됐습니다. 이 구조에서는 연속 입력 중 반복되는 API 요청이나 필터 연산 자체가 없으므로 debounce가 줄여 주는 작업도 거의 없습니다.</p>
-        <pre><code>const debouncedSearch = debounce(search, 300);
+        <pre><code>// 개념 예시: custom hook이 만든 300ms 지연값
+const debouncedSearch = useDebounce(search, 300);
 
 // 검색 실행은 입력 변경이 아니라 클릭·Enter에만 연결
 const handleSearch = () => {
   filter(allMembers, debouncedSearch);
 };</code></pre>
-        <p>오히려 마지막 입력 후 300ms 안에 버튼을 누르면 갱신 전 검색어가 사용될 수 있습니다. debounce는 값을 늦추는 것만으로 최적화가 되지 않습니다. 지연된 값이 실제 비용이 큰 작업의 실행 조건과 연결돼야 의미가 있습니다.</p>
-        <div class="callout"><strong>핵심 구분</strong>debounce는 최적화 기법 자체가 아니라 작업 실행 시점을 조절하는 스케줄링 방식입니다.</div>
+        <p>오히려 마지막 입력 후 300ms 안에 버튼을 누르면 갱신 전 검색어가 사용될 수 있습니다. 당시 구현은 네트워크 요청 수나 입력 중 필터 실행 횟수를 줄이지 못했고, 사용자가 최신 입력과 다른 결과를 볼 가능성만 추가했습니다. 이 debounce는 최적화 성과가 아니라 실행 조건을 잘못 연결한 실패로 남깁니다.</p>
+        <div class="callout"><strong>핵심 구분</strong>debounce는 값을 늦추는 것만으로 최적화가 되지 않습니다. 지연된 값이 실제 비용이 큰 작업의 실행 조건과 연결돼야 의미가 있습니다.</div>
 
-        <h2 id="redesign">로컬 검색과 서버 검색의 다른 설계</h2>
+        <h2 id="redesign">미적용 재설계안: 로컬 검색과 서버 검색</h2>
+        <div class="callout"><strong>구현 범위</strong>아래 <code>useMemo</code>, <code>AbortController</code> 예시는 당시 READ ME 코드에 반영한 성과가 아니라, 현재 다시 구현한다면 적용할 대안입니다.</div>
         <h3>작은 로컬 목록</h3>
         <p>멤버 목록이 이미 메모리에 있고 크기가 작다면 debounce 없이 검색어와 원본 목록에서 결과를 계산하는 편이 단순합니다.</p>
         <pre><code>const filteredMembers = useMemo(() => {
@@ -95,9 +97,10 @@ const handleSearch = () => {
 }, [debouncedQuery]);</code></pre>
 
         <h2 id="lesson">서버 상태와 파생 상태의 구분</h2>
-        <div class="result-box"><div><span>SERVER STATE</span><strong>Mutation 후 재검증</strong></div><div><span>DERIVED STATE</span><strong>저장보다 계산</strong></div><div><span>LOCAL SEARCH</span><strong>즉시 필터링</strong></div><div><span>REMOTE SEARCH</span><strong>debounce + 취소</strong></div></div>
-        <p>당시 구현에서 <code>Promise.all</code> 재조회는 서버를 source of truth로 유지하려는 명확한 선택이었습니다. 반면 검색 결과를 별도 state로 저장하고 클릭 기반 검색에 debounce를 적용한 부분은 복잡성에 비해 효과가 작았습니다.</p>
-        <p>같은 React state라도 서버에서 가져온 원본인지, 다른 값으로부터 계산되는 파생 결과인지, 사용자 입력의 임시 값인지에 따라 관리 방식이 달라집니다. 구현 패턴보다 먼저 상태의 성격을 구분하는 것이 더 중요한 기준이 됐습니다.</p>
+        <div class="result-box"><div><span>IMPLEMENTED</span><strong>Mutation 후 재검증</strong></div><div><span>FAILED CHOICE</span><strong>클릭 검색 + debounce</strong></div><div><span>REDESIGN</span><strong>파생 결과는 계산</strong></div><div><span>NOT IMPLEMENTED</span><strong>debounce + 요청 취소</strong></div></div>
+        <p>당시 구현에서 <code>Promise.all</code> 재조회는 서버 응답으로 화면을 다시 맞추려는 명확한 선택이었습니다. 반면 검색 결과를 별도 state로 저장하고 클릭 기반 검색에 debounce를 적용한 부분은 효과를 만들지 못한 설계였습니다. 두 선택을 모두 성공 사례처럼 포장하지 않습니다.</p>
+        <p>홈에서 이 글을 “원본·파생 상태의 경계를 다시 설계한 기록”이라고 소개한 이유도 여기에 있습니다. 당시 구현한 것은 댓글 변경 뒤 두 서버 상태의 재검증과 원본·결과 배열의 분리였고, 파생 결과를 계산하도록 단순화하는 방식과 서버 검색의 요청 취소는 회고에서 제안한 미적용 재설계안입니다.</p>
+        <p>같은 React state라도 서버에서 가져온 원본인지, 다른 값으로부터 계산되는 파생 결과인지, 사용자 입력의 임시 값인지에 따라 관리 방식이 달라집니다. 이 글의 결론은 debounce를 적용했다는 사실이 아니라, 상태의 성격과 실제 실행 조건을 먼저 확인해야 한다는 점입니다.</p>
         <a class="next-post" href="./mysql-mongodb-transaction-boundary.html"><span>NEXT POST</span><strong>MySQL과 MongoDB 사이의 트랜잭션 경계 →</strong></a>
       </article>
     </div>

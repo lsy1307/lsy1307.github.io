@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -27,24 +27,27 @@
       <p class="eyebrow">Spring advanced · Cross-cutting</p>
       <h1>Filter, Interceptor, AOP를 구분하는 기준</h1>
       <p class="article-lead">인증, 로깅, 권한, 트랜잭션 같은 공통 관심사는 어디에 두느냐에 따라 코드의 결합도가 달라집니다. 실행 위치를 기준으로 나누면 훨씬 덜 헷갈립니다.</p>
-      <div class="article-meta"><span>STUDY NOTE</span><span>7 MIN READ</span><span>SPRING MVC</span></div>
+      <div class="article-meta"><span>UPDATED 2026.07</span><span>SPRING MVC 6</span><span>BOOT 3</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#flow">실행 흐름</a><a href="#filter">Filter</a><a href="#interceptor">Interceptor</a><a href="#aop">AOP</a><a href="#criteria">선택 기준</a></aside>
       <article class="article-body">
         <h2 id="flow">요청 흐름에서의 위치</h2>
-        <p>셋은 모두 공통 관심사를 처리할 수 있지만 실행 위치가 다릅니다. Filter는 Servlet 영역, Interceptor는 Spring MVC 영역, AOP는 Spring Bean 메서드 호출 주변에서 동작합니다.</p>
+        <p>셋은 모두 공통 관심사를 처리할 수 있지만 실행 위치가 다릅니다. Filter는 Servlet 영역, Interceptor는 Spring MVC 영역, AOP는 프록시를 거친 Spring Bean 메서드 호출 주변에서 동작합니다. 인증·인가가 필요하다면 일반 Filter나 Interceptor를 직접 만드는 것보다 Spring Security의 <code>SecurityFilterChain</code>을 먼저 사용합니다.</p>
         <pre><code>Client
-  → Filter
+  → Servlet Filter chain
+      → Spring Security FilterChainProxy
   → DispatcherServlet
-  → Interceptor
+  → HandlerInterceptor.preHandle
   → Controller
-  → Service Bean method
-  → AOP advice</code></pre>
+  → AOP proxy advice
+  → Service target method
+  → AOP proxy advice return
+  → HandlerInterceptor postHandle / afterCompletion</code></pre>
         <p>위치가 다르기 때문에 접근할 수 있는 정보도 다릅니다. Filter는 HTTP 요청 자체에 가깝고, Interceptor는 어떤 Handler가 실행될지 알 수 있으며, AOP는 비즈니스 메서드의 인자와 반환값에 가깝습니다.</p>
 
         <h2 id="filter">Filter: Spring MVC 앞단의 요청 처리</h2>
-        <p>Filter는 Servlet Filter입니다. Spring MVC에 들어가기 전 요청과 응답을 다룰 수 있습니다. CORS, encoding, 보안 필터 체인, request logging처럼 HTTP 레벨 처리가 어울립니다.</p>
+        <p>Filter는 Servlet Filter입니다. Spring MVC에 들어가기 전 요청과 응답을 다룰 수 있습니다. encoding, request ID, 요청 래핑처럼 HTTP 레벨 처리가 어울립니다. CORS와 인증 필터를 Spring Security와 함께 쓴다면 별도 Filter 순서를 추측하지 말고 <code>HttpSecurity</code> 설정과 <code>addFilterBefore/After</code>로 보안 체인 안의 위치를 명시합니다.</p>
         <pre><code>class RequestIdFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(
@@ -57,7 +60,7 @@
 }</code></pre>
 
         <h2 id="interceptor">Interceptor: Controller 호출 전후</h2>
-        <p>Interceptor는 HandlerMapping 이후에 동작합니다. 어떤 Controller 메서드가 호출될지 아는 상태에서 전후 처리를 할 수 있습니다. 로그인 확인, locale 처리, 관리자 경로 접근 확인처럼 MVC 컨텍스트가 필요한 작업에 맞습니다.</p>
+        <p>Interceptor는 HandlerMapping 이후에 동작합니다. 어떤 Controller 메서드가 호출될지 아는 상태에서 전후 처리를 할 수 있습니다. locale 처리, Controller 실행 시간 기록처럼 MVC 컨텍스트가 필요한 작업에 맞습니다. 로그인 확인과 관리자 권한처럼 보안 규칙은 우회 경로를 만들지 않도록 <code>SecurityFilterChain</code>과 method security에 둡니다.</p>
         <pre><code>class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(
@@ -71,23 +74,33 @@
 
         <h2 id="aop">AOP: Bean 메서드 주변의 공통 로직</h2>
         <p>AOP는 Spring Bean 메서드 호출을 감쌉니다. 트랜잭션, 메서드 실행 시간 측정, 권한 annotation 처리처럼 비즈니스 계층의 메서드 단위 관심사에 잘 맞습니다.</p>
-        <pre><code>@Around("@annotation(Measured)")
-public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
-    long start = System.currentTimeMillis();
-    try {
-        return joinPoint.proceed();
-    } finally {
-        log.info("elapsed={}", System.currentTimeMillis() - start);
+        <pre><code>@Aspect
+@Component
+class MeasureAspect {
+    private static final Logger log =
+        LoggerFactory.getLogger(MeasureAspect.class);
+
+    @Around("@annotation(Measured)")
+    public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
+        long start = System.nanoTime();
+        try {
+            return joinPoint.proceed();
+        } finally {
+            long elapsed = System.nanoTime() - start;
+            log.info("elapsedNanos={}", elapsed);
+        }
     }
 }</code></pre>
-        <p>단, Spring AOP는 프록시 기반이라 같은 클래스 내부 메서드 호출에는 advice가 적용되지 않는 self-invocation 문제가 있습니다.</p>
+        <p>호출자는 대상 객체가 아니라 프록시를 호출하고, advice가 대상 메서드 호출 전후를 감쌉니다. 여러 advice가 겹치면 <code>@Order</code> 값 등으로 진입 순서를 정할 수 있고 반환 시에는 중첩이 반대로 풀립니다. 트랜잭션과 method security도 프록시 advisor일 수 있으므로 실제 advisor 순서를 확인합니다.</p>
+        <p>Spring AOP는 프록시 기반이라 같은 클래스 내부에서 <code>this.method()</code>로 호출하면 일반적으로 프록시를 우회해 advice가 적용되지 않습니다. AspectJ weaving을 쓰는 경우에는 이 제약이 다를 수 있습니다.</p>
 
         <h2 id="criteria">선택 기준</h2>
         <ul>
-          <li>HTTP 요청 자체를 다루면 Filter</li>
+          <li>인증·인가라면 먼저 Spring Security의 <code>SecurityFilterChain</code>과 method security</li>
+          <li>HTTP 요청 자체를 다루면 Servlet Filter</li>
           <li>Controller 매핑 이후의 요청 흐름을 다루면 Interceptor</li>
           <li>Service 메서드 실행 전후의 관심사라면 AOP</li>
-          <li>트랜잭션처럼 프록시 기반 기능은 public 메서드와 외부 호출 경계를 확인</li>
+          <li>트랜잭션처럼 프록시 기반 기능은 proxy 종류, method 가시성, 외부 호출 경계를 사용 중인 Spring 버전 기준으로 확인</li>
         </ul>
         <a class="next-post" href="./spring-jpa-transaction.html"><span>NEXT NOTE</span><strong>트랜잭션과 JPA 영속성 컨텍스트 기본 →</strong></a>
       </article>

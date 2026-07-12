@@ -355,6 +355,40 @@ button, input, textarea { font: inherit; }
   letter-spacing: -.035em;
 }
 
+.content-status {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 10px;
+  padding: 4px 8px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--white);
+  font: 800 .66rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.content-status.implemented {
+  color: var(--white);
+  background: var(--ink);
+}
+
+.content-status.retrospective {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+.content-status.proposed {
+  border-style: dashed;
+  background: var(--accent-soft);
+}
+
+.content-status.limits {
+  border-color: #777;
+  background: #eeeeeb;
+}
+
 .post-card p {
   margin: 0;
   color: var(--muted);
@@ -401,6 +435,20 @@ button, input, textarea { font: inherit; }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--white);
+  color: inherit;
+  text-decoration: none;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.project-card:hover,
+.project-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 0 var(--line);
+}
+
+.project-card:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
 }
 
 .project-card.dark {
