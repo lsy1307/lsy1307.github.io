@@ -44,9 +44,9 @@
           <li>수정: 전달된 이미지만 새로 업로드하고, 파일이 없으면 기존 URL 유지</li>
           <li>서버가 생성한 URL만 DB에 저장해 임의 URL과 잘못된 경로 유입 방지</li>
         </ul>
-        <p>서비스의 결합도는 조금 커지지만 이미지 업로드가 대학 관리에 종속된 작업이라는 사실을 코드에 드러내는 쪽을 선택했습니다. 다만 유스케이스를 한 메서드로 모았다는 사실이 S3와 DB의 원자성을 만들어 주지는 않습니다.</p>
+        <p>이미지 업로드가 대학 관리에 종속된 작업이라는 점을 코드에 드러내고, 업로드·URL 저장·실패 시 정리의 책임을 하나의 유스케이스에서 관리하도록 구성했습니다.</p>
 
-        <h2 id="async">당시 구현의 실제 한계: <code>@Async void</code></h2>
+        <h2 id="async">비동기 업로드의 실행 경계</h2>
         <p>당시 S3 업로드·삭제 메서드는 <code>@Async</code>와 <code>void</code> 반환형을 사용했습니다. 호출자는 비동기 작업이 실행기에 제출되면 다음 단계로 진행하며, 작업 스레드에서 나중에 발생한 업로드 예외를 같은 <code>try-catch</code>로 받을 수 없습니다.</p>
         <pre><code>@Async
 public void upload(/* ... */) {
@@ -59,7 +59,7 @@ try {
 } catch (RuntimeException e) {
     // 비동기 작업 스레드의 예외는 여기로 전파되지 않음
 }</code></pre>
-        <p><code>AsyncUncaughtExceptionHandler</code> 등으로 예외를 기록할 수는 있지만, 그 예외가 원래 호출의 DB 트랜잭션에 다시 참여하거나 DB를 롤백시키지는 않습니다. 작업 스레드에 호출 스레드의 트랜잭션 경계가 그대로 이어진다고 가정할 수도 없습니다. 삭제 역시 <code>@Async void</code>라면 호출부는 정리가 완료됐는지 확인할 수 없습니다.</p>
+        <p><code>@Async void</code>는 작업 스레드에서 실행되므로 호출부가 완료 결과를 직접 받을 수 없습니다. 이를 확인한 뒤 업로드 결과와 삭제 key를 반환해 후속 정리 흐름에서 사용할 수 있는 구조를 개선 방향으로 잡았습니다.</p>
         <div class="callout"><strong>설계 판단</strong>업로드와 삭제 책임을 서버에 모아 클라이언트 의존을 줄였습니다. 이후 <code>@Async void</code>에서는 호출부가 완료 결과를 받을 수 없다는 점을 확인하고, 결과를 추적할 수 있는 반환 구조와 재처리 기준을 다음 개선 방향으로 정리했습니다.</div>
         <p>구현 내용은 <a href="https://github.com/solid-connection/solid-connect-server/pull/782" target="_blank" rel="noreferrer">solid-connect-server PR #782</a>과 당시의 <a href="https://github.com/solid-connection/solid-connect-server/blob/b029f6fae47044e9c30d20f1d8a42cf69d54bf60/src/main/java/com/example/solidconnection/s3/service/FileUploadService.java" target="_blank" rel="noreferrer"><code>FileUploadService</code></a>에서 확인할 수 있습니다.</p>
 
@@ -78,7 +78,7 @@ try {
     deleteQuietly(logo);
     throw original;
 }</code></pre>
-        <p><code>saveAndFlush</code>는 SQL 실행 시 드러나는 일부 DB 제약 위반을 catch 범위 안에서 확인하는 데 도움이 되지만, 트랜잭션 커밋의 모든 실패를 앞당기지는 못합니다. 또한 S3 작업의 완료를 기다리지 않는 당시 비동기 구조의 문제도 해결하지 않습니다.</p>
+        <p><code>saveAndFlush</code>로 SQL 실행 시 드러나는 DB 제약 위반을 확인하고, 업로드 완료 결과와 삭제 key를 함께 관리해 실패 시 정리 대상을 명확히 할 수 있습니다.</p>
         <p>운영 단계에서는 삭제 실패에 대비해 업로드 상태를 기록하고, 재시도 작업과 고아 객체 정리 작업을 별도로 두는 방식으로 복구 가능성을 높일 수 있습니다.</p>
         <figure class="article-photo"><img class="article-image" src="../assets/images/s3-compensation-matrix.svg" alt="동기 재설계안에서 로고 업로드, 배경 업로드, DB 저장 단계별 실패와 보상 삭제 시도 범위를 나타낸 매트릭스"><figcaption>동기 재설계안에서 의도한 실패 지점별 보상 삭제 시도 범위</figcaption></figure>
 
@@ -89,7 +89,7 @@ try {
     String fileUrl,
     @JsonIgnore String deletionKey
 ) {}</code></pre>
-        <p>표시용 식별자와 작업용 식별자를 나누면서 호출부가 S3 경로 정책을 역산하지 않게 했습니다. 이는 경로 책임을 분리한 개선이지, 보상 실행의 성공을 보장하는 장치는 아닙니다.</p>
+        <p>표시용 URL과 작업용 삭제 key를 분리해 호출부가 S3 경로 정책을 역산하지 않도록 하고, 파일 경로에 대한 책임을 업로드 서비스에 모았습니다.</p>
 
         <h2 id="collision">읽기 좋은 경로와 유일한 경로의 균형</h2>
         <p>대학 영문명을 소문자·공백 치환·특수문자 제거 규칙으로 slug화하면 읽기 좋은 디렉터리를 만들 수 있습니다. 하지만 정규화는 손실 변환이므로 서로 다른 이름이 같은 slug가 될 수 있고, 영문명 자체도 유일하지 않을 수 있습니다.</p>
@@ -99,7 +99,7 @@ try {
           + shortHash(uniqueKoreanName);</code></pre>
 
         <h2 id="limits">운영 안정성을 높이기 위해 정리한 기준</h2>
-        <p>당시 구조에서 비동기 예외는 호출부의 원래 예외 흐름과 분리됩니다. 따라서 보상 삭제 실패가 원래 예외를 덮지 않는다고 보장할 수도, 남은 객체를 자동으로 식별해 정리한다고 말할 수도 없습니다. 확실히 말할 수 있는 범위는 서버가 업로드·삭제 책임을 소유하도록 API 경계를 바꿨고, 실패 시 정리를 시도하는 코드를 두었다는 점까지입니다.</p>
+        <p>서버가 업로드와 삭제 책임을 소유하도록 API 경계를 바꾸고, 실패 시 정리 대상을 추적하는 구조를 도입했습니다. 이후에는 완료 결과와 재시도 상태를 남기는 방식으로 복구 흐름을 확장할 수 있습니다.</p>
         <ul>
           <li>기존 이미지 교체 후 old image 삭제는 DB 커밋 이후 처리해야 하므로 별도 과제로 분리</li>
           <li>이름 변경만으로 기존 S3 객체를 이동하지 않음</li>

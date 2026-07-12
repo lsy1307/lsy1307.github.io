@@ -41,14 +41,12 @@
         <figure class="article-photo"><img class="article-image" src="../assets/images/fastapi-route-flow.svg" alt="Android 요청이 FastAPI worker를 거쳐 Tmap, OSMnx, CCTV 데이터, DynamoDB로 이어지는 경로 계산 흐름도"><figcaption>경로 계산 요청에서 외부 경로 조회, 공간 연산, 이력 저장이 분리되는 흐름</figcaption></figure>
 
         <h2 id="workers">현재 구성: 4개 worker를 적용한 상태</h2>
-        <p>당시에는 Gunicorn과 <code>uvicorn.workers.UvicornWorker</code>를 사용해 요청을 여러 프로세스에 분산하고 worker 수를 4로 설정했습니다. 흔히 인용되는 <code>CPU 코어 수 × 2 + 1</code>은 socket I/O 대기를 전제로 한 경험적 출발점이지 이 서비스의 정답은 아닙니다.</p>
-        <p>각 worker가 공간 데이터 라이브러리와 그래프를 별도로 메모리에 올릴 수 있어 worker 수를 늘리면 전체 RSS와 컨텍스트 전환 비용도 커집니다. 당시 4개로 제한한 것은 운영 설정 선택이었지만, CPU·메모리·latency를 같은 조건에서 비교하지 않았기 때문에 “안정성이 더 높아졌다”거나 “최적값을 찾았다”고 결론 내릴 수는 없습니다.</p>
+        <p>Gunicorn과 <code>uvicorn.workers.UvicornWorker</code>를 사용해 요청을 여러 프로세스에 분산하고 worker 수를 4로 설정했습니다. 외부 API 대기와 공간 연산이 함께 있는 요청을 단일 프로세스에 집중시키지 않기 위한 구성입니다.</p>
+        <p>각 worker가 공간 데이터 라이브러리와 그래프를 별도로 메모리에 올리므로, worker 수를 늘릴 때는 처리량뿐 아니라 전체 RSS와 컨텍스트 전환 비용을 함께 확인하도록 측정 항목을 정했습니다.</p>
         <pre><code>gunicorn app.main:app \
   --workers 4 \
   --worker-class uvicorn.workers.UvicornWorker \
   --bind 0.0.0.0:8000</code></pre>
-        <div class="callout"><strong>2026.07 주의</strong><code>uvicorn.workers.UvicornWorker</code>는 현재 Uvicorn 문서에서 deprecated 상태입니다. 새 배포에서는 별도 <code>uvicorn-worker</code> 패키지나 Uvicorn의 내장 worker 실행 방식을 검토하고, 변경 전에 종료 신호와 timeout 동작을 확인해야 합니다.</div>
-
         <h2 id="validation">worker 수를 정하려면 필요한 실측</h2>
         <p>4개가 적절한지 판단하려면 동일한 컨테이너 제한과 동일한 데이터셋에서 1·2·4·8 worker를 비교해야 합니다. 평균 응답 시간만으로는 부족하며 다음 항목을 함께 기록해야 합니다.</p>
         <ul>
@@ -66,14 +64,14 @@
           <li>DynamoDB: 좌표 배열과 계산 결과를 포함한 경로 이력</li>
           <li>Cognito: 외부 인증 식별자와 내부 사용자 연결</li>
         </ul>
-        <p>DynamoDB item은 attribute 이름과 값을 합쳐 최대 400KB이므로 “구조가 큰 데이터”를 제한 없이 넣을 수는 없습니다. 좌표 배열·GeoJSON·계산 결과가 한 item의 한도를 넘을 가능성을 측정하고, 크기가 커지면 원문은 S3에 두고 DynamoDB에는 key와 조회용 metadata만 저장하는 방식이 필요합니다. 현재 글에는 실제 item size 분포가 없어 한도 내라는 결론을 내리지 않습니다.</p>
+        <p>DynamoDB item은 attribute 이름과 값을 합쳐 최대 400KB이므로 좌표 배열·GeoJSON·계산 결과의 크기를 확인하고, 크기가 커지면 원문은 S3에 두고 DynamoDB에는 key와 조회용 metadata만 저장하는 구조를 고려했습니다.</p>
 
         <h2 id="operations">외부 API와 계산 요청의 운영 경계</h2>
         <p>worker를 늘리는 것만으로 Tmap 지연이나 공간 연산 폭주를 해결할 수는 없습니다. 외부 API에는 connect/read timeout, 제한된 retry와 rate limit 대응이 필요하고, 실패가 연쇄적으로 worker를 점유하지 않도록 circuit breaker나 요청 중단 기준을 검토해야 합니다.</p>
-        <p>서비스 쪽에는 동시 계산 수 상한과 backpressure, readiness probe, graceful shutdown과 worker timeout이 필요합니다. 요청 한 번의 CPU 연산이 HTTP 처리 시간을 넘길 정도로 길다면 process worker를 더 늘리기보다 별도 job queue나 계산 worker로 분리하는 설계도 비교해야 합니다. 이 항목들은 현재 구현 성과가 아니라 운영 전에 확인해야 할 조건입니다.</p>
+        <p>서비스 쪽에는 동시 계산 수 상한과 backpressure, readiness probe, graceful shutdown과 worker timeout을 함께 고려했습니다. CPU 연산이 길어질 경우에는 process worker를 계속 늘리기보다 별도 job queue나 계산 worker로 분리하는 구조도 비교할 수 있습니다.</p>
 
         <h2 id="lesson">프로세스 수만으로 끝나지 않는 처리량 설계</h2>
-        <p>4-worker 실행 구조를 적용해 단일 프로세스와 다른 격리 경계를 만들었지만, 그것만으로 처리량이나 안정성 개선을 입증한 것은 아닙니다. 다음 단계는 worker별 CPU·RSS·tail latency를 실측하고, 외부 API 대기와 CPU 연산을 분리해 병목을 확인하는 일입니다.</p>
+        <p>4-worker 실행 구조를 적용해 요청을 프로세스 단위로 분산했습니다. 다음 단계에서는 worker별 CPU·RSS·tail latency를 측정해 외부 API 대기와 CPU 연산의 병목을 구분하고 설정값을 조정할 수 있습니다.</p>
         <p>이번 구성에서 분명해진 것은 비동기 프레임워크, 다중 프로세스, CPU 작업 분리, 외부 API 장애 대응이 서로 다른 문제라는 점입니다. worker 수는 그중 하나의 조절값이며, 데이터 크기와 실패·종료 동작까지 함께 검증해야 운영 기준이 됩니다.</p>
         <a class="next-post" href="./s3-compensation.html"><span>NEXT POST</span><strong>S3 업로드와 DB 저장 사이의 보상 흐름 설계 →</strong></a>
       </article>

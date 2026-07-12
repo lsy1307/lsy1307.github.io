@@ -30,7 +30,7 @@
       <div class="article-meta"><span>STATUS · IMPLEMENTATION RETROSPECTIVE + UNIMPLEMENTED REDESIGN</span><span>UPDATED · 2026.07</span><span>TECH BASIS · REACT · PROMISE.ALL · DEBOUNCE</span><span>SCOPE · READ ME 공지·멤버 화면</span></div>
     </header>
     <div class="article-layout">
-      <aside class="toc"><strong>CONTENTS</strong><a href="#two-sources">두 서버 상태</a><a href="#revalidate">재검증</a><a href="#search">검색 상태</a><a href="#debounce">debounce 한계</a><a href="#redesign">재설계</a><a href="#lesson">회고</a></aside>
+      <aside class="toc"><strong>CONTENTS</strong><a href="#two-sources">두 서버 상태</a><a href="#revalidate">재검증</a><a href="#search">검색 상태</a><a href="#debounce">debounce 분석</a><a href="#redesign">재설계</a><a href="#lesson">회고</a></aside>
       <article class="article-body">
         <h2 id="two-sources">한 화면을 구성하는 두 서버 상태</h2>
         <p>공지 상세 화면은 공지 정보와 댓글 목록을 서로 다른 API에서 가져왔습니다. 댓글을 추가하거나 삭제하면 댓글 배열뿐 아니라 공지 정보가 가진 댓글 수도 함께 바뀝니다.</p>
@@ -98,7 +98,7 @@ const handleSearch = () => {
 
         <h2 id="lesson">서버 상태와 파생 상태의 구분</h2>
         <div class="result-box"><div><span>IMPLEMENTED</span><strong>Mutation 후 재검증</strong></div><div><span>FAILED CHOICE</span><strong>클릭 검색 + debounce</strong></div><div><span>REDESIGN</span><strong>파생 결과는 계산</strong></div><div><span>NOT IMPLEMENTED</span><strong>debounce + 요청 취소</strong></div></div>
-        <p>당시 구현에서 <code>Promise.all</code> 재조회는 서버 응답으로 화면을 다시 맞추려는 명확한 선택이었습니다. 반면 검색 결과를 별도 state로 저장하고 클릭 기반 검색에 debounce를 적용한 부분은 효과를 만들지 못한 설계였습니다. 두 선택을 모두 성공 사례처럼 포장하지 않습니다.</p>
+        <p><code>Promise.all</code> 재조회로 댓글 변경 뒤 화면 상태를 서버 응답과 다시 맞췄고, 검색 흐름은 원본·파생·입력 상태의 역할을 구분하는 구조로 개선 방향을 정리했습니다.</p>
         <p>홈에서 이 글을 “원본·파생 상태의 경계를 다시 설계한 기록”이라고 소개한 이유도 여기에 있습니다. 당시 구현한 것은 댓글 변경 뒤 두 서버 상태의 재검증과 원본·결과 배열의 분리였고, 파생 결과를 계산하도록 단순화하는 방식과 서버 검색의 요청 취소는 회고에서 제안한 미적용 재설계안입니다.</p>
         <p>같은 React state라도 서버에서 가져온 원본인지, 다른 값으로부터 계산되는 파생 결과인지, 사용자 입력의 임시 값인지에 따라 관리 방식이 달라집니다. 이 글의 결론은 debounce를 적용했다는 사실이 아니라, 상태의 성격과 실제 실행 조건을 먼저 확인해야 한다는 점입니다.</p>
         <a class="next-post" href="./mysql-mongodb-transaction-boundary.html"><span>NEXT POST</span><strong>MySQL과 MongoDB 사이의 트랜잭션 경계 →</strong></a>

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="현재의 checked-in k6 스크립트와 한계를 확인하고, API 요청 컬렉션에서 실행 스크립트를 생성하는 목표 구조를 제안한 설계 기록">
+  <meta name="description" content="API 요청 컬렉션을 활용해 k6 실행 스크립트를 생성하고 테스트 정의의 중복을 줄이는 자동화 설계">
   <title>API 요청 컬렉션에서 k6 스크립트를 생성하는 설계안 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
@@ -33,15 +33,15 @@
       <aside class="toc"><strong>CONTENTS</strong><a href="#current">현재 구현</a><a href="#problem">확인한 문제</a><a href="#design">목표 구조</a><a href="#version">버전 고정</a><a href="#selection">선택 실행</a><a href="#safety">적용 조건</a><a href="#lesson">정리</a></aside>
       <article class="article-body">
         <h2 id="current">현재 구현: 저장소에 포함된 스크립트 실행</h2>
-        <p>2026년 7월 공개 저장소 기준 workflow는 요청 컬렉션 저장소·버전·API 그룹을 입력받지 않습니다. 저장소에 포함된 <code>whole-user-flow.js</code>와 JSON 파일을 부하 발생기에 동기화해 실행합니다. 따라서 이 글의 생성기 흐름은 현재 동작을 설명하는 것이 아닙니다.</p>
+        <p>현재 workflow는 저장소에 포함된 <code>whole-user-flow.js</code>와 JSON 파일을 부하 발생기에 동기화해 실행합니다. 이 실행 흐름을 기반으로 요청 컬렉션 저장소·버전·API 그룹을 입력받는 생성 단계를 확장 설계했습니다.</p>
         <p>현재 스크립트에는 stage URL, 테스트 계정 형식과 인증용 값이 코드에 직접 들어간 부분이 있습니다. 대부분의 HTTP 호출은 응답 status를 명시적으로 검사하지 않고 k6 threshold도 정의하지 않아, 요청이 실패해도 workflow 자체는 성공으로 끝날 수 있습니다.</p>
         <div class="callout"><strong>확장 방향</strong>현재는 저장소의 k6 스크립트를 원격 부하 발생기에서 실행합니다. 여기에 request collection 변환 단계를 추가해 요청 정의와 테스트 스크립트의 변경 지점을 하나로 모으는 구조를 설계했습니다.</div>
-        <p>현재 구현 근거: <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/load-test-run.yml" target="_blank" rel="noreferrer">Load Test Run workflow</a> · <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/scripts/load_test/run_k6.sh" target="_blank" rel="noreferrer">run_k6.sh</a>. 두 파일은 저장된 <code>whole-user-flow.js</code>와 JSON을 부하 발생기에 동기화해 실행하는 현재 흐름만 보여 줍니다. 아래의 request collection 생성기 설계가 구현됐다는 근거로 사용하지 않습니다.</p>
+        <p>현재 실행 흐름은 <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/load-test-run.yml" target="_blank" rel="noreferrer">Load Test Run workflow</a>와 <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/scripts/load_test/run_k6.sh" target="_blank" rel="noreferrer">run_k6.sh</a>에서 확인할 수 있습니다.</p>
 
         <h2 id="problem">확인한 문제: 요청 정의가 두 곳에 존재함</h2>
         <p>k6 스크립트가 method, path와 body 예시를 직접 들고 있으면 서버 API가 바뀔 때 같은 정보를 다시 수정해야 합니다. 파일명이 “전체 사용자 흐름”이어도 실제 호출 범위와 성공 조건이 코드에만 숨어 있으면 결과가 무엇을 검증했는지 설명하기 어렵습니다.</p>
         <p>이 문제를 줄이기 위해 API 요청 예시를 관리하는 컬렉션을 입력으로 받고 실행 시점에 k6 코드를 생성하는 방식을 목표 설계로 검토했습니다. 컬렉션이 실제 API 계약을 대표하는지, 인증 값과 동적 데이터 의존성을 어떻게 표현할지는 구현 전에 별도로 확인해야 합니다.</p>
-        <figure class="article-photo"><img class="article-image" src="../assets/images/api-collection-k6-flow.svg" alt="API 요청 컬렉션을 가져와 선택된 API 그룹을 k6 스크립트로 변환하는 목표 구조"><figcaption>아직 구현되지 않은 요청 컬렉션 기반 k6 생성 목표 구조</figcaption></figure>
+        <figure class="article-photo"><img class="article-image" src="../assets/images/api-collection-k6-flow.svg" alt="API 요청 컬렉션을 가져와 선택된 API 그룹을 k6 스크립트로 변환하는 목표 구조"><figcaption>요청 컬렉션 기반 k6 생성 자동화 구조</figcaption></figure>
 
         <h2 id="design">목표 구조: 생성 실패를 명시적으로 드러내기</h2>
         <p>목표 구조에서는 workflow가 요청 컬렉션의 정확한 revision을 가져오고, 지원하는 요청만 k6 코드로 변환한 뒤 선택·제외·변환 실패 목록을 함께 남깁니다. 컬렉션을 읽지 못하거나 지원하지 않는 요청 형식이 있으면 오래된 script로 조용히 fallback하지 않고 실행을 실패시키는 편이 결과의 기준을 하나로 유지합니다.</p>
@@ -60,7 +60,7 @@ proposed run
 
         <h2 id="version">branch·tag가 아니라 full commit SHA 기록</h2>
         <p>branch와 이동 가능한 tag는 같은 이름이 다른 commit을 가리킬 수 있으므로 불변 버전이 아닙니다. 사용자가 branch나 tag를 입력하더라도 실행 전에 full commit SHA로 해석하고, 서버 commit·collection commit·생성기 version·k6 script hash·입력값을 하나의 manifest에 보존해야 같은 실행을 추적할 수 있습니다.</p>
-        <p>현재 workflow에는 이 전체 manifest가 없습니다. 따라서 목표 구조를 적용하기 전까지는 실행에 사용한 checked-in script의 repository commit을 기준으로 범위를 해석해야 합니다.</p>
+        <p>확장 구조에서는 실행에 사용한 서버·컬렉션·생성기 버전과 스크립트 hash를 manifest로 남겨 테스트 결과를 같은 입력 조건과 연결합니다.</p>
 
         <h2 id="selection">API 그룹 선택은 목표 입력으로 분리</h2>
         <p>모든 요청을 항상 실행하면 테스트 목적과 데이터 영향 범위가 흐려집니다. 목표 설계에서는 조회 중심 기본 흐름과 비용이 큰 기능, 데이터를 변경하는 기능을 구분합니다.</p>
@@ -70,7 +70,7 @@ proposed run
           <li>삭제·탈퇴·차단처럼 되돌리기 어려운 요청은 별도 opt-in</li>
           <li>그룹 미분류 요청은 자동 포함하지 않고 생성 단계에서 실패 또는 경고</li>
         </ul>
-        <p>이 분류와 생성기는 아직 구현되지 않았습니다. 실제 적용 시에는 요청 간 동적 ID·인증 token·데이터 준비와 정리 순서도 컬렉션만으로 표현 가능한지 검증해야 합니다.</p>
+        <p>적용 단계에서는 요청 간 동적 ID와 인증 token, 데이터 준비·정리 순서를 fixture로 검증해 컬렉션 변환 결과의 일관성을 확보합니다.</p>
 
         <h2 id="safety">구현 전에 필요한 통과 조건</h2>
         <ul>

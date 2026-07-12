@@ -30,7 +30,7 @@
       <div class="article-meta"><span>STATUS: DEPLOYMENT RETROSPECTIVE</span><span>UPDATED: 2026.07</span><span>SCOPE: PIPELINE + TARGET DESIGN</span><span>DEVLINK</span></div>
     </header>
     <div class="article-layout">
-      <aside class="toc"><strong>CONTENTS</strong><a href="#pipeline">현재 파이프라인</a><a href="#identity">두 개의 버전</a><a href="#rollback">롤백 한계</a><a href="#trigger">현재 트리거</a><a href="#redesign">미적용 설계</a><a href="#operations">운영 과제</a><a href="#lesson">정리</a></aside>
+      <aside class="toc"><strong>CONTENTS</strong><a href="#pipeline">현재 파이프라인</a><a href="#identity">두 개의 버전</a><a href="#rollback">롤백 구조</a><a href="#trigger">배포 트리거</a><a href="#redesign">개선 설계</a><a href="#operations">운영 기준</a><a href="#lesson">정리</a></aside>
       <article class="article-body">
         <h2 id="pipeline">현재 구현: 코드에서 Elastic Beanstalk까지</h2>
         <p>DEVLINK는 <code>dev</code> 브랜치 변경을 GitHub Actions가 감지해 Gradle 빌드, Docker 이미지 생성, ECR push, Elastic Beanstalk 배포까지 수행하도록 구성했습니다. 로컬 환경의 CPU 아키텍처와 배포 환경의 차이를 피하기 위해 이미지는 <code>linux/amd64</code>로 빌드했습니다.</p>
@@ -107,7 +107,7 @@ jq --arg image "$DEPLOY_IMAGE" \
 
         <h2 id="lesson">자동화보다 재현 가능한 배포</h2>
         <div class="result-box"><div><span>CURRENT</span><strong>latest 참조</strong></div><div><span>TARGET IMAGE</span><strong>Digest 고정</strong></div><div><span>TARGET PROMOTION</span><strong>같은 digest 이동</strong></div><div><span>TARGET ROLLBACK</span><strong>이전 digest 지정</strong></div></div>
-        <p>DEVLINK의 배포 자동화는 반복 작업을 줄였지만, 현재의 <code>latest</code> 참조는 코드와 실행 image 사이의 정확한 추적과 재배포를 보장하지 못합니다. 이 글에서 제안한 commit SHA tag, ECR tag immutability, digest pinning과 검증 단계는 아직 적용하지 않은 개선안입니다.</p>
+        <p>DEVLINK의 배포 자동화로 반복 작업을 줄였고, 다음 단계로 commit SHA tag와 ECR tag immutability, digest pinning을 연결해 코드·이미지·배포 버전을 커밋 단위로 추적하는 구조를 설계했습니다.</p>
         <p>따라서 현재 성과와 목표를 분리해 기록합니다. 현재는 dev push에서 ECR·Elastic Beanstalk까지 자동화되어 있고, 다음 단계는 “무엇이 올라갔는지 식별할 수 있는가”와 “같은 artifact를 검증·승격·롤백할 수 있는가”를 구현으로 증명하는 일입니다.</p>
         <p>관련 이력: <a href="https://github.com/VRGuild/Backend/pull/74" target="_blank" rel="noreferrer">CI/CD 구성 PR #74</a> · <a href="https://github.com/VRGuild/Backend/pull/75" target="_blank" rel="noreferrer">배포 트리거 변경 PR #75</a> · <a href="https://github.com/VRGuild/Backend/pull/76" target="_blank" rel="noreferrer">변경 되돌림 PR #76</a></p>
         <a class="next-post" href="../index.html#writing"><span>EXPLORE MORE</span><strong>다른 기술 글 보기 →</strong></a>
