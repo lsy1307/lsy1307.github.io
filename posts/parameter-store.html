@@ -2,22 +2,22 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Parameter Store 설정 외부화와 일회성 AWS 인프라로 부하 테스트 환경 전환 시간을 20분에서 2~3분으로 줄인 기록">
-  <title>20분 걸리던 부하 테스트 환경 전환 자동화 | lsy1307 기술 블로그</title>
+  <meta name="description" content="Parameter Store 설정 외부화와 일회성 AWS 인프라를 연결하고, 작업자가 수행하던 설정 전환 조작을 약 20분에서 2~3분으로 줄인 구현 기록과 남은 운영 과제">
+  <title>부하 테스트 설정 전환 조작을 20분에서 2~3분으로 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -25,16 +25,16 @@
     <header class="article-hero shell">
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">Load Test · AWS Operations</p>
-      <h1>20분 걸리던 부하 테스트 환경 전환 자동화</h1>
-      <p class="article-lead">설정 외부화와 일회성 RDS·부하 발생기, Start·Run·Stop workflow를 하나의 운영 흐름으로 연결한 기록입니다.</p>
-      <div class="article-meta"><span>PROJECT NOTE</span><span>12 MIN READ</span><span>SOLID CONNECTION</span></div>
+      <h1>부하 테스트 설정 전환 조작을 20분에서 2~3분으로</h1>
+      <p class="article-lead">Parameter Store 설정 외부화와 일회성 RDS·부하 발생기, Start·Run·Stop workflow를 연결한 구현 기록입니다. 20분에서 2~3분이라는 수치는 작업자가 설정을 수정하고 전환하는 데 들인 조작 시간이며, RDS 복원과 워밍업을 포함한 전체 준비 시간은 아닙니다.</p>
+      <div class="article-meta"><span>STATUS: IMPLEMENTED</span><span>UPDATED: 2026.07</span><span>SCOPE: CONFIG · LOAD-TEST INFRA</span><span>SOLID CONNECTION</span></div>
     </header>
     <div class="article-layout">
-      <aside class="toc"><strong>CONTENTS</strong><a href="#problem">반복 비용</a><a href="#config">설정 외부화</a><a href="#infra">일회성 인프라</a><a href="#lifecycle">생명주기</a><a href="#execution">안전한 실행</a><a href="#result">결과</a></aside>
+      <aside class="toc"><strong>CONTENTS</strong><a href="#problem">측정 범위</a><a href="#config">설정 외부화</a><a href="#infra">일회성 인프라</a><a href="#lifecycle">생명주기</a><a href="#execution">실행 방식</a><a href="#limits">남은 과제</a><a href="#result">결과</a></aside>
       <article class="article-body">
         <h2 id="problem">환경 준비가 테스트보다 어려운 구조</h2>
         <p>기존 dev·prod 설정은 <code>application.yml</code>과 secret 서브모듈에 흩어져 있었습니다. 부하 테스트를 시작하려면 DB endpoint와 profile을 직접 바꾸고, stage 서버를 재기동하고, 테스트 데이터를 준비해야 했습니다.</p>
-        <p>이 과정은 약 20분이 걸렸고 순서 하나를 놓치면 stage가 잘못된 DB를 바라보거나 설정 충돌이 발생했습니다. 작은 로컬 DB는 운영의 데이터 분포를 반영하지 못하고, 운영 DB를 직접 대상으로 삼는 것은 안전하지 않았습니다.</p>
+        <p>제가 직접 설정 파일을 수정하고 충돌을 확인해 환경을 전환하는 조작은 약 20분이 걸렸고, 순서 하나를 놓치면 stage가 잘못된 DB를 바라보거나 설정 충돌이 발생했습니다. 작은 로컬 DB는 운영의 데이터 분포를 반영하지 못하고, 운영 DB를 직접 대상으로 삼는 것은 안전하지 않았습니다.</p>
         <div class="callout"><strong>하나의 문제</strong>설정 전환과 테스트 인프라 생성은 별도 작업이 아니었습니다. 신뢰할 수 있는 부하 테스트를 시작하기 위한 하나의 생명주기였습니다.</div>
 
         <h2 id="config">Parameter Store 기반 설정 외부화</h2>
@@ -43,10 +43,10 @@
 /solid-connection/dev/...
 /solid-connection/prod/...
 /solid-connection/loadtest/...</code></pre>
-        <p>애플리케이션은 <code>spring.config.import</code>와 Spring Cloud AWS를 통해 현재 profile에 맞는 경로를 읽습니다. 배포 workflow에서는 secret 서브모듈 checkout을 제거하고, EC2 IAM Role과 <code>DefaultCredentialsProvider</code> 체인으로 설정과 S3에 접근하도록 변경했습니다.</p>
+        <p>애플리케이션은 <code>spring.config.import</code>와 Spring Cloud AWS를 통해 현재 profile에 맞는 경로를 읽습니다. 서버 애플리케이션 배포에서는 secret 서브모듈 checkout을 제거하고, EC2 IAM Role과 <code>DefaultCredentialsProvider</code> 체인으로 설정과 S3에 접근하도록 변경했습니다. 필요한 원격 설정은 <code>optional:</code>로 숨기지 않아 누락 시 시작 단계에서 실패하도록 했습니다.</p>
         <ul>
           <li>환경별 설정 경계의 명시적 분리</li>
-          <li>장기 access key와 secret key의 애플리케이션 설정 제거</li>
+          <li>서버에 별도 access key를 두지 않고 EC2 Role의 읽기 권한 사용</li>
           <li>서브모듈 commit hash 불일치와 수동 동기화 제거</li>
           <li><code>dev,loadtest</code> 복합 profile을 통한 선택적 설정 오버라이드</li>
         </ul>
@@ -65,8 +65,9 @@ resource "aws_db_instance" "load_test" {
   storage_encrypted   = true
   skip_final_snapshot = true
 }</code></pre>
-        <p>RDS는 public 접근을 막고 prod·stage API 서버의 Security Group에서 오는 MySQL 트래픽만 허용했습니다. 생성된 endpoint는 loadtest Parameter Store 경로에 기록되어 stage 애플리케이션이 별도 파일 수정 없이 새 DB를 바라볼 수 있습니다.</p>
+        <p>RDS는 <code>publicly_accessible = false</code>로 만들고 prod·stage API 서버의 Security Group에서 오는 MySQL 트래픽을 허용했습니다. 생성된 endpoint는 loadtest Parameter Store 경로에 기록되어 stage 애플리케이션이 별도 파일 수정 없이 새 DB를 바라볼 수 있습니다. 다만 부하 테스트에 stage만 필요하다면 prod까지 허용한 규칙은 최소 권한보다 넓으므로 더 좁혀야 합니다. DB subnet group도 stage VPC의 모든 subnet이 아니라 private subnet을 명시적으로 선택하는 편이 안전합니다.</p>
         <p>k6는 stage 서버와 분리한 전용 EC2에서 실행했습니다. 측정 대상과 부하 생성기가 CPU·메모리·네트워크를 경쟁하지 않게 하고, 실행기는 암호화된 볼륨과 IMDSv2 강제 설정을 사용한 뒤 테스트 종료 시 제거합니다.</p>
+        <p>스냅샷 복원 완료가 곧 모든 데이터 블록의 준비 완료를 뜻하지는 않습니다. 복원된 RDS는 처음 접근하는 블록을 지연 로드할 수 있어 첫 측정이 스토리지 초기화 비용을 포함할 수 있습니다. 결과를 비교하려면 사전 읽기나 별도 warm-up을 두고, 그 구간을 본 측정에서 제외해야 합니다.</p>
 
         <h2 id="lifecycle">Start · Run · Stop 책임 분리</h2>
         <p>환경 준비와 테스트 실행, 복구는 실패 지점과 반복 주기가 다릅니다. 하나의 긴 스크립트 대신 세 workflow로 책임을 나눴습니다.</p>
@@ -88,12 +89,22 @@ resource "aws_db_instance" "load_test" {
 run: |
   args=(--vus "$VUS" --max-duration "$MAX_DURATION")
   bash scripts/load_test/run_k6.sh "${args[@]}"</code></pre>
-        <p>실행 스크립트는 SSM 상태를 제한 시간까지 polling하고, <code>trap</code>으로 실패 시에도 부하 발생기 정리를 시도합니다. Prometheus remote-write URL이 있을 때만 출력 플러그인을 켜고 xk6와 extension 버전은 고정했습니다.</p>
+        <p>실행 스크립트는 SSM 상태를 제한 시간까지 polling하고, <code>trap</code>으로 실패 시에도 부하 발생기 정리를 시도합니다. Prometheus remote-write URL이 있을 때만 출력 플러그인을 켜고 xk6와 extension 버전은 고정했습니다. 다만 정리용 trap이 모든 부분 생성 시점보다 먼저 등록되는 것은 아니어서, 중간 실패 시 남은 자원이 없는지 Stop 단계에서 다시 확인해야 합니다.</p>
 
-        <h2 id="result">결과: 20분에서 2~3분</h2>
-        <div class="result-box"><div><span>ENV SWITCH</span><strong>20분 → 2~3분</strong></div><div><span>REDUCTION</span><strong>약 85%</strong></div><div><span>DATA</span><strong>운영 스냅샷 기반</strong></div><div><span>ACCESS</span><strong>OIDC · SSM</strong></div></div>
-        <p>환경 전환 시간뿐 아니라 테스트의 재현 가능성도 개선됐습니다. 설정 외부화만으로는 현실적인 테스트 DB가 없고, 인프라 자동화만으로는 애플리케이션 설정 전환이 남습니다. 두 작업을 하나의 생명주기로 연결했을 때 비로소 부하 테스트가 반복 가능한 운영 작업이 됐습니다.</p>
-        <a class="next-post" href="./api-collection-k6.html"><span>NEXT POST</span><strong>API 요청 컬렉션에서 k6 부하 테스트를 생성하기 →</strong></a>
+        <h2 id="limits">구현 범위 밖에 남은 운영 과제</h2>
+        <p>이 자동화는 설정 전환과 테스트 자원의 생명주기를 연결했지만, 운영 스냅샷을 사용한다는 사실만으로 안전하고 재현 가능한 테스트가 완성되지는 않습니다.</p>
+        <ul>
+          <li><strong>데이터 보호</strong> — 운영 스냅샷의 개인정보·민감정보를 비식별화하거나 테스트용 합성 데이터로 대체하는 절차는 공개 구현에서 확인되지 않습니다.</li>
+          <li><strong>secret 경계</strong> — Parameter Store 값 중 민감정보는 <code>SecureString</code>, KMS 정책, 경로 단위 IAM과 rotation 정책이 필요합니다. Parameter Store 사용 자체가 이를 보장하지는 않습니다.</li>
+          <li><strong>재현성</strong> — 최신 자동 스냅샷과 <code>most_recent</code> AMI 선택은 실행마다 달라질 수 있습니다. snapshot ID, AMI ID, 애플리케이션 commit, k6 script와 입력값을 한 실행 manifest로 보존하는 단계가 아직 충분하지 않습니다.</li>
+          <li><strong>전체 준비 시간</strong> — RDS 복원·가용 상태 대기·워밍업을 포함한 end-to-end 시간은 별도로 측정해야 합니다.</li>
+        </ul>
+
+        <h2 id="result">결과: 작업자 조작 시간 20분에서 2~3분</h2>
+        <div class="result-box"><div><span>OPERATOR TIME</span><strong>20분 → 2~3분</strong></div><div><span>RDS READY</span><strong>별도 시간</strong></div><div><span>DATA SAFETY</span><strong>후속 과제</strong></div><div><span>ACCESS</span><strong>OIDC · SSM</strong></div></div>
+        <p>여기서 줄어든 것은 작업자가 설정을 바꾸고 환경 전환 명령을 수행하는 데 들인 시간입니다. RDS 복원, 상태 대기, 데이터 warm-up, k6 실행 시간은 2~3분에 포함하지 않았습니다. 설정 외부화와 인프라 생명주기를 연결해 반복 조작을 줄였지만, 개인정보 비식별화와 최소 권한, 실행 manifest와 end-to-end 준비 시간 측정은 다음 개선 범위로 남아 있습니다.</p>
+        <p>구현 내용은 <a href="https://github.com/solid-connection/solid-connect-server/pull/670" target="_blank" rel="noreferrer">서버 Parameter Store 전환 PR #670</a>과 <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/scripts/load_test/README.md" target="_blank" rel="noreferrer">부하 테스트 자동화 README</a>, <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/load-test-start.yml" target="_blank" rel="noreferrer">Start</a>·<a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/load-test-run.yml" target="_blank" rel="noreferrer">Run</a>·<a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/load-test-stop.yml" target="_blank" rel="noreferrer">Stop</a> workflow에서 확인할 수 있습니다. 설정 외부화와 실행 절차 자동화를 통해 작업자의 환경 전환 조작 시간을 약 20분에서 2~3분으로 줄였습니다.</p>
+        <a class="next-post" href="./api-collection-k6.html"><span>NEXT POST</span><strong>API 요청 컬렉션에서 k6 스크립트를 생성하는 설계안 →</strong></a>
       </article>
     </div>
   </main>

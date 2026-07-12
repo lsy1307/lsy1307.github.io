@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -27,24 +27,27 @@
       <p class="eyebrow">Spring basic · MVC</p>
       <h1>요청이 Controller까지 도착하는 흐름</h1>
       <p class="article-lead">Spring MVC는 HTTP 요청을 Controller 메서드에 연결해 줍니다. 이 흐름을 알면 DTO, Validation, 예외 처리 위치가 더 분명해집니다.</p>
-      <div class="article-meta"><span>STUDY NOTE</span><span>6 MIN READ</span><span>SPRING MVC</span></div>
+      <div class="article-meta"><span>UPDATED 2026.07</span><span>SPRING MVC 6</span><span>BOOT 3</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#flow">요청 흐름</a><a href="#dto">DTO</a><a href="#validation">검증</a><a href="#exception">예외 처리</a><a href="#layer">계층 분리</a></aside>
       <article class="article-body">
         <h2 id="flow">기본 요청 흐름</h2>
-        <p>Spring MVC에서 HTTP 요청은 먼저 <code>DispatcherServlet</code>으로 들어옵니다. 이후 어떤 Controller의 어떤 메서드가 처리할지 찾고, 파라미터를 바인딩한 뒤 메서드를 실행합니다.</p>
+        <p>Servlet Filter를 통과한 HTTP 요청은 <code>DispatcherServlet</code>으로 들어옵니다. <code>HandlerMapping</code>이 Handler를 찾고 <code>HandlerAdapter</code>가 argument resolver, data binding, validation을 거쳐 Controller 메서드를 호출합니다. 반환값은 return value handler와 <code>HttpMessageConverter</code> 등을 거쳐 응답으로 직렬화됩니다.</p>
         <pre><code>Client
+  → Servlet Filter chain
   → DispatcherServlet
   → HandlerMapping
-  → Controller
+  → HandlerAdapter / argument resolver
+  → Controller method
   → Service
   → Repository
+  → HttpMessageConverter
   → Response</code></pre>
         <p>개발자가 매번 이 흐름을 직접 작성하지 않아도 되는 이유는 Spring MVC가 공통 흐름을 프레임워크 안에 넣어두었기 때문입니다. 우리는 주로 Controller 메서드와 비즈니스 로직에 집중합니다.</p>
 
         <h2 id="dto">DTO는 외부 요청과 내부 모델 사이의 완충지대</h2>
-        <p>요청 body를 Entity에 바로 바인딩하면 외부 API 구조와 내부 도메인 구조가 강하게 묶입니다. 그래서 보통 Request DTO와 Response DTO를 따로 둡니다.</p>
+        <p>요청 body를 Entity에 바로 바인딩하면 외부 API 구조와 내부 도메인 구조가 강하게 묶이고, 의도하지 않은 필드가 바인딩될 위험도 커집니다. 그래서 보통 Request DTO와 Response DTO를 따로 둡니다.</p>
         <pre><code>record CreateMemberRequest(
     String name,
     String email
@@ -77,15 +80,18 @@ public MemberResponse create(@Valid @RequestBody CreateMemberRequest request) {
         <pre><code>@RestControllerAdvice
 class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
-    ErrorResponse handleBadRequest(IllegalArgumentException e) {
-        return new ErrorResponse(e.getMessage());
+    ResponseEntity&lt;ErrorResponse&gt; handleBadRequest(
+        IllegalArgumentException e
+    ) {
+        ErrorResponse body = new ErrorResponse(e.getMessage());
+        return ResponseEntity.badRequest().body(body);
     }
 }</code></pre>
-        <p>이렇게 하면 Controller는 성공 흐름에 집중하고, 실패 응답의 형식은 한곳에서 관리할 수 있습니다.</p>
+        <p>이렇게 하면 Controller는 성공 흐름에 집중하고, 실패 응답의 형식은 한곳에서 관리할 수 있습니다. body만 반환하면 별도 status 설정이 없는 한 200 응답이 될 수 있으므로 <code>ResponseEntity</code>나 <code>@ResponseStatus</code>로 HTTP status를 명시합니다.</p>
 
         <h2 id="layer">Controller와 Service를 나누는 기준</h2>
         <p>Controller는 HTTP를 다루는 계층입니다. 요청 값을 받고, 인증 사용자 정보를 읽고, 응답 DTO를 반환합니다. Service는 HTTP와 무관한 비즈니스 흐름을 다룹니다.</p>
-        <div class="callout"><strong>간단한 기준</strong>코드에 <code>@RequestBody</code>, <code>@PathVariable</code>, HTTP status가 중요하면 Controller에 가깝고, 도메인 규칙과 트랜잭션이 중요하면 Service에 가깝습니다.</div>
+        <div class="callout"><strong>간단한 기준</strong>코드에 <code>@RequestBody</code>, <code>@PathVariable</code>, HTTP status가 중요하면 웹 어댑터에 가깝고, 도메인 규칙과 트랜잭션이 중요하면 애플리케이션 서비스에 가깝습니다. 프로젝트 규모에 따라 계층 이름은 달라도 의존 방향은 분명하게 둡니다.</div>
         <a class="next-post" href="./spring-configuration-properties.html"><span>NEXT NOTE</span><strong>Profile과 Configuration Properties 설계 →</strong></a>
       </article>
     </div>

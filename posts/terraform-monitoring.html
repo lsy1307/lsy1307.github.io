@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="수동 AWS 인프라의 재현성과 변경 추적 문제를 해결하기 위해 Terraform을 도입하고 환경과 모듈 경계를 설계한 기록">
+  <meta name="description" content="AWS 인프라를 Terraform root와 state로 분리한 구현 범위, 모니터링 기반만 코드화된 현재 상태와 provider lock·saved plan·secret 관리의 남은 한계">
   <title>수동 AWS 인프라에서 Terraform으로 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -26,11 +26,11 @@
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">Terraform · Infrastructure as Code</p>
       <h1>수동 AWS 인프라에서 Terraform으로</h1>
-      <p class="article-lead">콘솔과 서버 내부에 흩어진 설정을 코드 리뷰 가능한 변경으로 옮기기 위해 Terraform을 선택하고, 환경·모듈·상태의 경계를 나눈 과정입니다.</p>
-      <div class="article-meta"><span>PROJECT NOTE</span><span>10 MIN READ</span><span>SOLID CONNECTION</span></div>
+      <p class="article-lead">prod·stage·monitoring·load_test·global을 독립 root와 S3 state로 나눈 구현 기록입니다. 현재 모니터링 영역은 EC2·Security Group·Docker 설치와 수동 Nginx 설정 기반까지 코드화됐으며, Grafana·Loki·Prometheus 구성 전체가 Terraform으로 관리되는 상태는 아닙니다.</p>
+      <div class="article-meta"><span>STATUS: PARTIALLY IMPLEMENTED</span><span>UPDATED: 2026.07</span><span>SCOPE: ROOTS · STATE · HOST FOUNDATION</span><span>SOLID CONNECTION</span></div>
     </header>
     <div class="article-layout">
-      <aside class="toc"><strong>CONTENTS</strong><a href="#background">도입 배경</a><a href="#choice">선택 기준</a><a href="#boundary">환경 경계</a><a href="#module">모듈 경계</a><a href="#migration">점진적 전환</a><a href="#limits">한계</a></aside>
+      <aside class="toc"><strong>CONTENTS</strong><a href="#background">도입 배경</a><a href="#choice">선택 기준</a><a href="#boundary">환경 경계</a><a href="#module">구현 범위</a><a href="#migration">실제 전환 순서</a><a href="#limits">남은 한계</a></aside>
       <article class="article-body">
         <h2 id="background">동작하지만 재현할 수 없는 인프라</h2>
         <p>초기 AWS 환경은 콘솔에서 EC2와 Security Group을 만들고, 서버에 접속해 Docker와 Nginx를 설정하는 방식이었습니다. 서비스는 동작했지만 현재 구성이 왜 그렇게 되었는지, 다른 환경에 같은 구성을 만들려면 무엇이 필요한지 한눈에 알기 어려웠습니다.</p>
@@ -55,40 +55,46 @@
 ├── monitoring/
 ├── load_test/
 └── global/</code></pre>
-        <p>state는 암호화된 S3 backend에 환경별 key로 분리하고 lockfile을 사용했습니다.</p>
+        <p>state는 versioning과 public access block, 비암호화 전송 거부 정책을 둔 S3 backend에 환경별 key로 분리하고 S3 native lockfile을 사용했습니다.</p>
         <pre><code>backend "s3" {
   bucket       = "…-tfstate"
   key          = "env/prod/terraform.tfstate"
   use_lockfile = true
   encrypt      = true
 }</code></pre>
-        <p>이 구조에서는 monitoring 변경이 prod state를 잠그지 않고, load_test 환경은 독립적으로 생성·삭제할 수 있습니다. state 경계가 곧 변경 책임과 장애 영향 범위의 경계가 됐습니다.</p>
+        <p>이 구조에서는 monitoring 변경이 prod state를 잠그지 않고, load_test 환경은 독립적으로 생성·삭제할 수 있습니다. 여기의 <code>use_lockfile</code>은 state 동시 수정 방지용 <code>.tflock</code>이며 provider 버전을 고정하는 <code>.terraform.lock.hcl</code>과는 다른 파일입니다. 현재 저장소는 provider dependency lock file을 커밋하지 않아 plan과 apply의 provider 재현성은 별도 과제로 남아 있습니다.</p>
 
-        <h2 id="module">변경 이유에 따른 모듈 경계</h2>
+        <h2 id="module">모듈 경계와 현재 코드화 범위</h2>
         <p>환경 디렉터리가 “어디에 적용하는가”를 표현한다면 모듈은 “무엇이 함께 바뀌는가”를 표현하도록 나눴습니다.</p>
         <ul>
           <li><code>app_stack</code> — prod·stage가 공유하는 EC2, RDS, Security Group과 서버 초기화</li>
-          <li><code>monitoring_stack</code> — Grafana·Loki·Prometheus 서버와 접근 경로</li>
+          <li><code>monitoring_stack</code> — 모니터링용 EC2·Security Group, Docker 설치와 Nginx 설정 스크립트 기반</li>
           <li><code>shared_resources</code> — 환경을 가로질러 공유하는 S3, CloudFront, Lambda, ACM</li>
         </ul>
         <p>prod와 stage는 같은 <code>app_stack</code>을 사용하되 인스턴스 크기, ingress 규칙, 도메인과 RDS 설정을 입력값으로 분리했습니다. 복사된 리소스 정의가 서로 다른 방향으로 변하는 drift를 줄이기 위한 구조입니다.</p>
+        <p><code>monitoring_stack</code>이라는 이름만으로 관측 스택 전체가 코드화됐다고 볼 수는 없습니다. 현재 Terraform은 host와 network 기반을 만들지만 Grafana·Loki·Prometheus 컨테이너 정의, datasource·dashboard·alert, 인증, 로그·메트릭 보존 기간과 volume backup은 포함하지 않습니다. Nginx 설정도 생성된 스크립트를 서버에서 수동 실행하는 범위입니다.</p>
         <figure class="article-photo"><img class="article-image" src="../assets/images/terraform-modules.svg" alt="환경별 Terraform root module과 app_stack, monitoring_stack, shared_resources 공통 모듈 관계도"><figcaption>환경별 root module과 재사용 module의 책임 경계</figcaption></figure>
 
-        <h2 id="migration">모니터링 환경부터 점진적 전환</h2>
-        <p>첫 전환 대상은 Grafana, Loki, Prometheus 기반 모니터링 서버였습니다. EC2, Security Group, Nginx reverse proxy 구성이 수동 설정에 의존했지만 애플리케이션 데이터 경로와는 분리되어 있어 Terraform 도입을 검증하기 좋은 경계였습니다.</p>
-        <p>이후 prod·stage의 공통 애플리케이션 스택과 S3·Lambda 같은 공유 리소스로 범위를 확장했습니다. 처음부터 모든 리소스를 한 번에 import하기보다 독립된 환경에서 module과 state 운영 방식을 검증한 뒤 넓혔습니다.</p>
-        <p>서버 내부 설정은 두 단계로 나눴습니다. Docker 같은 최초 부팅 작업은 cloud-init으로 처리하고, Nginx·관측 에이전트 설정은 템플릿 hash 변경을 감지해 SSM RunCommand로 반영했습니다. 설정 하나 때문에 EC2가 교체되지 않도록 인스턴스 생명주기와 구성 변경을 분리했습니다.</p>
+        <h2 id="migration">공개 PR로 확인한 실제 전환 순서</h2>
+        <p>공개 PR 이력에서 먼저 확인되는 것은 <a href="https://github.com/solid-connection/solid-connection-infra/pull/4" target="_blank" rel="noreferrer">prod·stage Terraform 기반 PR #4</a>이고, 그다음 <a href="https://github.com/solid-connection/solid-connection-infra/pull/13" target="_blank" rel="noreferrer">S3·Lambda 공유 리소스 PR #13</a>, 이후 <a href="https://github.com/solid-connection/solid-connection-infra/pull/14" target="_blank" rel="noreferrer">모니터링 기반 PR #14</a>입니다. 따라서 “모니터링에서 먼저 검증한 뒤 prod·stage로 확산했다”는 순서로 설명하는 것은 실제 이력과 맞지 않습니다.</p>
+        <p>전환은 환경별 root와 공통 module을 나누며 범위를 넓힌 과정이었지만, 모든 기존 리소스를 같은 수준으로 import하거나 모든 서버 내부 설정을 선언적으로 관리한 것은 아닙니다.</p>
+        <p><code>app_stack</code>에서는 Docker 같은 최초 부팅 작업을 cloud-init으로 처리하고, 일부 Nginx·관측 에이전트 템플릿 hash 변경을 <code>null_resource</code>와 SSM RunCommand로 반영합니다. 이 흐름은 monitoring root에 동일하게 적용되지 않습니다. 모니터링 쪽에는 별도의 수동 Nginx 설정 스크립트가 남아 있으므로 두 구현 범위를 구분해야 합니다.</p>
 
-        <h2 id="limits">IaC 이후에도 남는 운영 판단</h2>
-        <p>Terraform 도입이 수동 작업을 완전히 없애지는 않았습니다. 기존 리소스 import, state와 실제 리소스의 drift, provider 업그레이드, 삭제 가능한 환경과 보호해야 할 환경의 정책은 계속 관리해야 합니다.</p>
+        <h2 id="limits">IaC 이후에도 남은 재현성과 운영 한계</h2>
+        <p>Terraform 도입으로 환경 경계와 변경 내용을 코드에서 확인할 수 있게 됐지만, 현재 저장소만으로 “검토한 plan과 동일한 인프라가 적용되고 모든 설정과 secret이 재현된다”고 말할 수는 없습니다.</p>
         <ul>
-          <li>secret 값은 코드가 아닌 Parameter Store에서 조회</li>
-          <li><code>plan</code> 결과를 적용 전 검토하는 배포 규칙 필요</li>
-          <li><code>ignore_changes</code>는 책임 분리와 drift 은폐 사이의 판단 필요</li>
-          <li>SSM과 local-exec 같은 명령형 경계는 실패·timeout 처리 필요</li>
+          <li><strong>provider 고정</strong> — <code>.terraform.lock.hcl</code>을 ignore하고 provider constraint가 <code>&gt;= 5.0</code>인 상태라 실행 시점에 선택되는 provider가 달라질 수 있습니다. dependency lock file을 검토·커밋해야 합니다.</li>
+          <li><strong>검토한 plan의 동일 적용</strong> — PR에서는 speculative plan을 만들지만 main workflow는 새 <code>terraform apply -auto-approve</code>를 실행합니다. 승인한 saved plan artifact를 그대로 apply하는 구조가 아니며, plan artifact에는 민감한 인프라 정보가 포함될 수 있어 접근과 보존도 제한해야 합니다.</li>
+          <li><strong>secret 관리</strong> — 현재 infra 저장소에는 private <code>config/secrets</code> submodule과 <code>.tfvars</code> 소비가 남아 있습니다. Parameter Store 입력 전환 PR #29는 병합되지 않았으므로 “infra secret을 모두 Parameter Store로 전환했다”고 표현할 수 없습니다.</li>
+          <li><strong>drift 가시성</strong> — <code>ignore_changes</code>가 user data, AMI와 key name의 변경을 숨깁니다. 의도적으로 책임을 분리한 값과 놓치면 안 되는 drift를 문서화해야 합니다.</li>
+          <li><strong>명령형 경계</strong> — <code>null_resource</code>와 <code>local-exec</code>로 SSM 명령을 호출하면 부분 실패와 재실행 상태가 Terraform resource lifecycle에 완전히 표현되지 않습니다. provisioner는 마지막 수단으로 제한하고 timeout·idempotency·실패 복구를 별도로 검증해야 합니다.</li>
+          <li><strong>network와 host</strong> — default VPC, public IP와 SSH key가 남고 일부 보조 스크립트는 <code>chmod 777</code>과 host networking을 사용합니다. 최소 권한과 private 접근 기준으로 좁힐 범위입니다.</li>
+          <li><strong>인증서와 관측 데이터</strong> — standalone Certbot 갱신 시 80 port 점유, cron 실행 권한과 중복 등록을 dry-run으로 확인해야 합니다. dashboard·alert·retention·backup·volume 복구 절차도 아직 Terraform 관리 범위가 아닙니다.</li>
+          <li><strong>backend bootstrap</strong> — state bucket의 versioning·암호화·public 차단은 구현됐지만, 그 bucket을 자신이 제공하는 backend로 전환하는 bootstrap/import 절차는 문서화가 더 필요합니다.</li>
         </ul>
-        <p>Terraform의 가장 큰 효과는 “버튼을 누르지 않게 된 것”이 아니라 인프라 변경을 설명하고 검토할 수 있게 된 것이었습니다. 재현 가능성과 변경 추적은 코드 작성만으로 생기지 않고, state와 모듈 경계를 함께 설계할 때 만들어졌습니다.</p>
-        <a class="next-post" href="./fastapi-workers.html"><span>NEXT POST</span><strong>경로 계산 API의 4 Worker 선택 기준 →</strong></a>
+        <p>현재 확인할 수 있는 성과는 환경별 root와 state, 공통 module, 일부 host·network·배포 기반을 코드와 PR에서 추적할 수 있게 만든 것입니다. 다음 단계는 provider lock과 saved plan 동일 적용, secret 전환, 모니터링 구성·데이터 수명주기의 코드화로 그 재현성 범위를 넓히는 일입니다.</p>
+        <p>현재 구현 근거: <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/environment/monitoring/main.tf" target="_blank" rel="noreferrer">monitoring root</a> · <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/terraform-plan.yml" target="_blank" rel="noreferrer">Terraform Plan workflow</a> · <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/terraform-apply.yml" target="_blank" rel="noreferrer">Terraform Apply workflow</a>. 이 링크들은 현재 root와 plan·apply 흐름의 근거이며, 관측 도구 설정 전체나 saved plan 동일 적용이 완료됐다는 근거는 아닙니다.</p>
+        <a class="next-post" href="./fastapi-workers.html"><span>NEXT POST</span><strong>경로 계산 API의 4-worker 실행 구조 설계 →</strong></a>
       </article>
     </div>
   </main>

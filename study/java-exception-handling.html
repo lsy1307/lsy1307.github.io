@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -27,7 +27,7 @@
       <p class="eyebrow">Java basic · Exception</p>
       <h1>예외 처리 기준: checked, unchecked, custom exception</h1>
       <p class="article-lead">예외 처리는 try-catch 문법보다 “어디서 복구할 수 있는가”를 정하는 문제에 가깝습니다. 이 기준이 있어야 API 응답과 트랜잭션 rollback도 흔들리지 않습니다.</p>
-      <div class="article-meta"><span>STUDY NOTE</span><span>6 MIN READ</span><span>JAVA · SPRING</span></div>
+      <div class="article-meta"><span>UPDATED 2026.07</span><span>JAVA 17+</span><span>SPRING 6 · BOOT 3</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#checked">checked</a><a href="#unchecked">unchecked</a><a href="#custom">custom</a><a href="#spring">Spring rollback</a><a href="#response">API 응답</a></aside>
@@ -45,7 +45,7 @@
         <p><code>RuntimeException</code> 계열은 컴파일러가 처리를 강제하지 않습니다. null 접근, 잘못된 인자, 존재하지 않는 리소스, 권한 없음 같은 상황을 표현할 때 사용합니다.</p>
         <pre><code>Member member = memberRepository.findById(memberId)
     .orElseThrow(() -&gt; new MemberNotFoundException(memberId));</code></pre>
-        <p>unchecked exception을 무조건 나쁘게 볼 필요는 없습니다. 오히려 Spring 애플리케이션에서는 비즈니스 실패를 unchecked custom exception으로 표현하고, 전역 예외 처리에서 HTTP 응답으로 바꾸는 방식이 자연스럽습니다.</p>
+        <p>unchecked exception을 무조건 나쁘게 볼 필요는 없습니다. Spring 애플리케이션에서는 복구를 강제할 수 없는 비즈니스 실패를 unchecked custom exception으로 표현하고, 전역 예외 처리에서 HTTP 응답으로 바꾸는 방식을 자주 사용합니다. 다만 오류를 숨기지 않도록 예외 경계와 로그 정책을 함께 정해야 합니다.</p>
 
         <h2 id="custom">custom exception은 의미를 이름으로 드러낸다</h2>
         <p><code>IllegalArgumentException</code> 하나로 모든 실패를 표현하면 호출부나 로그에서 이유를 빠르게 알기 어렵습니다. <code>MemberNotFoundException</code>, <code>DuplicateEmailException</code>처럼 도메인 의미가 드러나는 예외는 디버깅과 응답 매핑에 도움이 됩니다.</p>
@@ -57,7 +57,7 @@
         <div class="callout"><strong>기준</strong>예외 이름만 보고 “무엇이 실패했는지” 알 수 있으면 custom exception의 가치가 있습니다. 단순히 클래스 수만 늘어나는 예외라면 공통 예외와 error code로 정리하는 편이 낫습니다.</div>
 
         <h2 id="spring">Spring rollback 기본</h2>
-        <p>Spring의 <code>@Transactional</code>은 기본적으로 unchecked exception과 <code>Error</code>에서 rollback합니다. checked exception은 기본 rollback 대상이 아닙니다. 이 차이를 모르고 checked exception을 던지면 DB 변경이 commit될 수 있습니다.</p>
+        <p>Spring의 기본 트랜잭션 규칙은 프록시 경계 밖으로 전파된 <code>RuntimeException</code>과 <code>Error</code>에서 rollback하고, checked exception은 rollback하지 않는 것입니다. 메서드 안에서 예외를 잡아 정상 반환하거나 별도 rollback 규칙을 설정하면 결과가 달라질 수 있으므로 실제 트랜잭션 경계도 함께 봐야 합니다.</p>
         <pre><code>@Transactional(rollbackFor = IOException.class)
 public void importFile(Path path) throws IOException {
     // checked exception에서도 rollback이 필요하다면 명시
@@ -68,9 +68,11 @@ public void importFile(Path path) throws IOException {
         <p>Controller마다 try-catch를 두면 응답 형식이 흩어집니다. <code>@RestControllerAdvice</code>에서 예외를 HTTP status와 error body로 바꾸면 실패 응답을 한곳에서 관리할 수 있습니다.</p>
         <pre><code>@ExceptionHandler(MemberNotFoundException.class)
 ResponseEntity&lt;ErrorResponse&gt; handle(MemberNotFoundException e) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(new ErrorResponse("MEMBER_NOT_FOUND", e.getMessage()));
+    ErrorResponse body =
+        new ErrorResponse("MEMBER_NOT_FOUND", e.getMessage());
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
 }</code></pre>
+        <p>반환 body만 만들면 기본 status가 200이 될 수 있습니다. <code>ResponseEntity</code>나 <code>@ResponseStatus</code>로 실패 status를 명시하고, validation·인증·서버 오류를 모두 같은 status로 뭉개지 않습니다.</p>
         <a class="next-post" href="./java-generics-optional.html"><span>NEXT NOTE</span><strong>Generics와 Optional을 안전하게 쓰는 법 →</strong></a>
       </article>
     </div>

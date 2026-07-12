@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -26,43 +26,44 @@
       <a class="back-link" href="../spring-study.html">← Java Spring 공부</a>
       <p class="eyebrow">JVM · Memory</p>
       <h1>JVM 메모리 구조와 GC 기본</h1>
-      <p class="article-lead">Spring 애플리케이션의 응답 지연과 OOM을 볼 때는 JVM 메모리 구조와 GC가 어떤 비용을 만드는지 먼저 알아야 합니다.</p>
-      <div class="article-meta"><span>STUDY NOTE</span><span>7 MIN READ</span><span>JVM</span></div>
+      <p class="article-lead">Spring 애플리케이션의 응답 지연과 OOM을 볼 때는 사용 중인 JDK·JVM·GC를 먼저 확인해야 합니다. 이 글은 HotSpot JDK 17+의 공통 개념을 기준으로 설명합니다.</p>
+      <div class="article-meta"><span>UPDATED 2026.07</span><span>HOTSPOT</span><span>JDK 17+</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#memory">메모리 구조</a><a href="#heap">Heap</a><a href="#gc">GC</a><a href="#metrics">운영 지표</a></aside>
       <article class="article-body">
         <h2 id="memory">JVM 메모리 큰 그림</h2>
-        <p>JVM 메모리는 크게 Heap, Stack, Metaspace, Code Cache 등으로 나눠 볼 수 있습니다. 애플리케이션 객체 대부분은 Heap에 올라가고, 메서드 호출마다 필요한 지역 변수와 호출 정보는 각 스레드의 Stack에 쌓입니다.</p>
+        <p>HotSpot 프로세스의 메모리는 Heap, 스레드 Stack, Metaspace, Code Cache 등으로 나눠 볼 수 있습니다. 애플리케이션 객체 대부분은 Heap에 올라가고, 메서드 호출마다 필요한 지역 변수와 호출 정보는 각 스레드의 Stack에 쌓입니다. Direct Buffer와 JVM 내부 native memory도 프로세스 메모리를 쓰므로 OOM을 Heap 문제로만 단정하지 않습니다.</p>
         <pre><code>JVM
   ├─ Heap: 객체가 주로 저장되는 공간
   ├─ Stack: 스레드별 메서드 호출과 지역 변수
   ├─ Metaspace: 클래스 메타데이터
-  └─ Code Cache: JIT 컴파일된 코드</code></pre>
+  ├─ Code Cache: JIT 컴파일된 코드
+  └─ Native memory: Direct Buffer, JVM 내부 구조 등</code></pre>
         <p>Stack은 스레드마다 따로 있고, Heap은 여러 스레드가 공유합니다. 그래서 공유 객체를 여러 스레드가 수정할 때 동시성 문제가 생길 수 있습니다.</p>
 
         <h2 id="heap">Heap과 객체 생명주기</h2>
-        <p>대부분의 객체는 생성 후 짧게 쓰이고 사라집니다. JVM의 세대별 GC는 이 특성을 이용해 young generation과 old generation을 나눠 관리합니다.</p>
+        <p>많은 애플리케이션에서 객체 대부분은 생성 후 짧게 쓰이고 사라집니다. HotSpot의 Serial, Parallel, G1처럼 세대형으로 동작하는 collector는 이 경향을 이용해 young generation과 old generation을 나눠 관리합니다. 모든 GC가 같은 세대 구조를 쓰는 것은 아니며 ZGC·Shenandoah의 세대 지원과 기본값은 JDK 버전에 따라 다릅니다.</p>
         <ul>
           <li>Young 영역: 새 객체가 먼저 할당되는 곳</li>
           <li>Old 영역: 여러 번 GC를 버틴 객체가 이동하는 곳</li>
           <li>객체가 계속 참조되면 GC 대상이 되지 않습니다.</li>
         </ul>
-        <p>캐시, static 컬렉션, ThreadLocal 정리 누락처럼 참조가 계속 남는 구조는 메모리 누수로 이어질 수 있습니다.</p>
+        <p>위의 Young·Old 설명은 세대형 collector에 한정됩니다. collector가 달라도 캐시, static 컬렉션, <code>ThreadLocal</code> 정리 누락처럼 의도치 않은 강한 참조가 계속 남으면 객체를 회수하지 못할 수 있습니다.</p>
 
         <h2 id="gc">GC는 메모리를 정리하지만 멈춤 비용을 만든다</h2>
-        <p>GC는 더 이상 참조되지 않는 객체를 정리합니다. 하지만 어떤 GC든 애플리케이션 스레드를 잠시 멈추는 구간이 생길 수 있습니다. 이 시간을 Stop-The-World pause라고 부릅니다.</p>
+        <p>GC는 도달할 수 없는 객체의 메모리를 회수합니다. HotSpot collector는 작업의 일부 단계에서 애플리케이션 스레드를 멈출 수 있지만, 멈추는 단계와 시간은 collector와 JDK 버전에 따라 크게 다릅니다. 이 정지 구간을 Stop-The-World pause라고 부릅니다.</p>
         <pre><code>java -Xms512m -Xmx512m -Xlog:gc*:file=gc.log -jar app.jar</code></pre>
-        <p>GC 로그를 보면 pause time, heap 사용량, full GC 여부를 확인할 수 있습니다. 응답 지연이 갑자기 튄다면 DB나 네트워크뿐 아니라 GC pause도 함께 봐야 합니다.</p>
+        <p><code>-Xlog</code>는 JDK 9+의 unified logging 옵션입니다. GC 로그에서는 pause time, collection 전후 Heap 사용량과 원인을 확인합니다. “Full GC” 용어와 이벤트 형태는 collector마다 다르므로 로그 형식을 현재 JDK 문서와 함께 해석해야 합니다. 응답 지연이 튄다면 DB나 네트워크뿐 아니라 GC pause와 CPU 사용량도 같은 시간축에서 봅니다.</p>
 
         <h2 id="metrics">운영에서 먼저 보는 지표</h2>
         <ul>
           <li>Heap used가 GC 이후에도 계속 증가하는지</li>
-          <li>Full GC가 반복되는지</li>
+          <li>사용 중인 collector에서 old/full collection 또는 concurrent cycle이 반복되는지</li>
           <li>GC pause 시간이 p99 응답 시간과 겹치는지</li>
           <li>스레드 수와 Stack 메모리 사용량이 과도하지 않은지</li>
         </ul>
-        <div class="callout"><strong>기준</strong>메모리 문제를 볼 때는 “많이 쓴다”보다 “GC 이후에도 회수되지 않는다”가 더 중요합니다. 회수되지 않는 참조를 찾는 게 누수 분석의 시작입니다.</div>
+        <div class="callout"><strong>기준</strong>Heap 누수는 “많이 쓴다”보다 “충분한 GC 뒤에도 의도치 않은 객체가 계속 살아 있다”는 증거로 판단합니다. OOM 종류, Heap dump, native memory, GC 로그를 함께 확인하며 높은 Heap 점유율만으로 누수를 단정하지 않습니다.</div>
         <a class="next-post" href="./java-concurrency.html"><span>NEXT NOTE</span><strong>Thread, synchronized, ExecutorService 기본 →</strong></a>
       </article>
     </div>
