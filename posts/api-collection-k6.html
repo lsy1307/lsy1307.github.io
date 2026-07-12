@@ -2,22 +2,22 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="API 요청 컬렉션을 단일 출처로 삼아 실행 시점에 k6 부하 테스트 스크립트를 생성한 의사결정 기록">
-  <title>API 요청 컬렉션에서 k6 부하 테스트를 생성하기 | lsy1307 기술 블로그</title>
+  <meta name="description" content="현재의 checked-in k6 스크립트와 한계를 확인하고, API 요청 컬렉션에서 실행 스크립트를 생성하는 목표 구조를 제안한 설계 기록">
+  <title>API 요청 컬렉션에서 k6 스크립트를 생성하는 설계안 | lsy1307 기술 블로그</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -25,56 +25,66 @@
     <header class="article-hero shell">
       <a class="back-link" href="../index.html#writing">← 모든 글</a>
       <p class="eyebrow">Load Test · Test Automation</p>
-      <h1>API 요청 컬렉션에서 k6 부하 테스트를 생성하기</h1>
-      <p class="article-lead">서버 API가 바뀔 때마다 부하 테스트 스크립트를 따라 수정하는 대신, 이미 관리 중인 요청 컬렉션을 단일 출처로 삼아 실행 시점에 k6 스크립트를 생성한 기록입니다.</p>
-      <div class="article-meta"><span>PROJECT NOTE</span><span>8 MIN READ</span><span>K6 · GITHUB ACTIONS</span></div>
+      <h1>API 요청 컬렉션에서 k6 스크립트를 생성하는 설계안</h1>
+      <p class="article-lead">현재 저장소는 checked-in k6 스크립트를 실행합니다. 이 글은 이미 구현한 기능의 성과가 아니라, 요청 정의와 부하 테스트의 중복을 줄이기 위해 검토한 목표 구조와 적용 전 검증 항목을 정리한 설계안입니다.</p>
+      <div class="article-meta"><span>STATUS: PROPOSED DESIGN</span><span>UPDATED: 2026.07</span><span>SCOPE: NOT IMPLEMENTED</span><span>K6 · GITHUB ACTIONS</span></div>
     </header>
     <div class="article-layout">
-      <aside class="toc"><strong>CONTENTS</strong><a href="#problem">문제</a><a href="#decision">의사결정</a><a href="#design">최종 구조</a><a href="#selection">선택 실행</a><a href="#safety">안전장치</a><a href="#lesson">배운 점</a></aside>
+      <aside class="toc"><strong>CONTENTS</strong><a href="#current">현재 구현</a><a href="#problem">확인한 문제</a><a href="#design">목표 구조</a><a href="#version">버전 고정</a><a href="#selection">선택 실행</a><a href="#safety">적용 조건</a><a href="#lesson">정리</a></aside>
       <article class="article-body">
-        <h2 id="problem">문제: 테스트 스크립트가 API 변화를 따라가지 못함</h2>
-        <p>기존 부하 테스트는 k6 스크립트 안에 요청 경로와 body 예시를 직접 들고 있었습니다. 처음에는 단순해서 편했지만, 서버 API 경로가 바뀌고 요청 형식이 수정되면서 스크립트가 실제 서버와 어긋나기 시작했습니다.</p>
-        <p>더 큰 문제는 이름과 실제 동작의 차이였습니다. “전체 사용자 흐름”을 검증하는 것처럼 보였지만 실제로는 일부 요청만 호출하고 있었습니다. 이 상태에서는 부하 테스트 결과를 보고도 어떤 API 그룹이 포함됐는지, 어떤 요청이 빠졌는지 바로 알기 어려웠습니다.</p>
-        <div class="callout"><strong>핵심 문제</strong>부하 테스트 스크립트가 API 명세와 분리되어 있었고, 서버가 바뀔 때마다 같은 요청 정보를 두 곳에서 고쳐야 했습니다.</div>
+        <h2 id="current">현재 구현: 저장소에 포함된 스크립트 실행</h2>
+        <p>2026년 7월 공개 저장소 기준 workflow는 요청 컬렉션 저장소·버전·API 그룹을 입력받지 않습니다. 저장소에 포함된 <code>whole-user-flow.js</code>와 JSON 파일을 부하 발생기에 동기화해 실행합니다. 따라서 이 글의 생성기 흐름은 현재 동작을 설명하는 것이 아닙니다.</p>
+        <p>현재 스크립트에는 stage URL, 테스트 계정 형식과 인증용 값이 코드에 직접 들어간 부분이 있습니다. 대부분의 HTTP 호출은 응답 status를 명시적으로 검사하지 않고 k6 threshold도 정의하지 않아, 요청이 실패해도 workflow 자체는 성공으로 끝날 수 있습니다.</p>
+        <div class="callout"><strong>현재 상태</strong>checked-in k6 script는 구현되어 있지만, request collection을 읽어 script를 생성하는 pipeline은 구현되어 있지 않습니다.</div>
+        <p>현재 구현 근거: <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/.github/workflows/load-test-run.yml" target="_blank" rel="noreferrer">Load Test Run workflow</a> · <a href="https://github.com/solid-connection/solid-connection-infra/blob/dc3b587ca0b8a097b7ec6e9b775dafe4112fe39e/scripts/load_test/run_k6.sh" target="_blank" rel="noreferrer">run_k6.sh</a>. 두 파일은 저장된 <code>whole-user-flow.js</code>와 JSON을 부하 발생기에 동기화해 실행하는 현재 흐름만 보여 줍니다. 아래의 request collection 생성기 설계가 구현됐다는 근거로 사용하지 않습니다.</p>
 
-        <h2 id="decision">모든 요청을 k6에 직접 추가하지 않은 이유</h2>
-        <p>처음에는 k6 스크립트에 API 그룹별 호출을 모두 추가하고, GitHub Actions 입력값으로 실행할 그룹을 고르는 방식을 검토했습니다. 구현 자체는 어렵지 않았습니다. 하지만 API가 추가되거나 경로가 바뀔 때마다 k6 스크립트도 계속 수정해야 하는 구조였습니다.</p>
-        <p>반면 팀에는 이미 API 요청 예시를 관리하는 컬렉션이 있었습니다. 그 안에는 요청 method, URL, header, body 예시가 들어 있었습니다. 그렇다면 k6가 요청 정보를 직접 들고 있기보다, 실행 시점에 요청 컬렉션을 읽어 부하 테스트 스크립트를 생성하는 편이 더 자연스러웠습니다.</p>
-        <figure class="article-photo"><img class="article-image" src="../assets/images/api-collection-k6-flow.svg" alt="API 요청 컬렉션을 가져와 선택된 API 그룹만 k6 스크립트로 변환하고 실행하는 흐름도"><figcaption>요청 컬렉션을 단일 출처로 사용하는 k6 스크립트 생성 흐름</figcaption></figure>
+        <h2 id="problem">확인한 문제: 요청 정의가 두 곳에 존재함</h2>
+        <p>k6 스크립트가 method, path와 body 예시를 직접 들고 있으면 서버 API가 바뀔 때 같은 정보를 다시 수정해야 합니다. 파일명이 “전체 사용자 흐름”이어도 실제 호출 범위와 성공 조건이 코드에만 숨어 있으면 결과가 무엇을 검증했는지 설명하기 어렵습니다.</p>
+        <p>이 문제를 줄이기 위해 API 요청 예시를 관리하는 컬렉션을 입력으로 받고 실행 시점에 k6 코드를 생성하는 방식을 목표 설계로 검토했습니다. 컬렉션이 실제 API 계약을 대표하는지, 인증 값과 동적 데이터 의존성을 어떻게 표현할지는 구현 전에 별도로 확인해야 합니다.</p>
+        <figure class="article-photo"><img class="article-image" src="../assets/images/api-collection-k6-flow.svg" alt="API 요청 컬렉션을 가져와 선택된 API 그룹을 k6 스크립트로 변환하는 목표 구조"><figcaption>아직 구현되지 않은 요청 컬렉션 기반 k6 생성 목표 구조</figcaption></figure>
 
-        <h2 id="design">최종 구조: 요청 컬렉션을 필수 입력으로</h2>
-        <p>최종 구조는 단순하게 잡았습니다. 부하 테스트 workflow는 실행 시점에 요청 컬렉션 저장소를 가져오고, 지정된 버전의 요청 예시를 읽어 k6 스크립트를 생성합니다. 생성된 스크립트만 실행 대상이 됩니다.</p>
-        <p>초기에는 요청 컬렉션이 없으면 기존 스크립트로 fallback하는 흐름도 고려했습니다. 하지만 fallback이 있으면 테스트의 기준이 둘로 갈라집니다. 어떤 실행은 오래된 수동 스크립트를 쓰고, 어떤 실행은 요청 컬렉션 기반 스크립트를 쓰게 됩니다. 그래서 요청 컬렉션을 필수 입력으로 만들고, k6는 항상 생성된 스크립트만 실행하도록 단순화했습니다.</p>
-        <pre><code>workflow input
+        <h2 id="design">목표 구조: 생성 실패를 명시적으로 드러내기</h2>
+        <p>목표 구조에서는 workflow가 요청 컬렉션의 정확한 revision을 가져오고, 지원하는 요청만 k6 코드로 변환한 뒤 선택·제외·변환 실패 목록을 함께 남깁니다. 컬렉션을 읽지 못하거나 지원하지 않는 요청 형식이 있으면 오래된 script로 조용히 fallback하지 않고 실행을 실패시키는 편이 결과의 기준을 하나로 유지합니다.</p>
+        <pre><code>proposed workflow input
   ├─ request collection repository
-  ├─ collection version
+  ├─ requested revision
   └─ enabled API groups
 
-run
-  ├─ checkout request collection
+proposed run
+  ├─ resolve revision to full commit SHA
   ├─ generate k6 script
-  ├─ write selected/skipped summary
-  └─ execute k6</code></pre>
-        <p>컬렉션 버전은 branch, tag, commit SHA로 고정할 수 있게 했습니다. 부하 테스트 결과를 나중에 다시 볼 때 “어떤 서버 버전과 어떤 요청 컬렉션 버전으로 실행했는지”를 맞춰 보기 위한 선택입니다.</p>
+  ├─ validate selected / skipped / unsupported requests
+  ├─ write execution manifest
+  └─ execute k6 with checks and thresholds</code></pre>
+        <p>JSON, text, XML과 multipart를 모두 지원한다고 가정해서는 안 됩니다. 생성기가 실제로 파싱하고 검증하는 형식만 지원 목록에 두고, 나머지는 summary에 표시한 뒤 실패 또는 명시적 제외로 처리해야 합니다.</p>
 
-        <h2 id="selection">API 그룹 선택은 실행 입력으로 분리</h2>
-        <p>모든 요청을 항상 실행하면 테스트 목적이 흐려집니다. 인증 흐름만 확인하고 싶을 수도 있고, 조회 API 중심으로 부하를 주고 싶을 수도 있습니다. 그래서 workflow 입력값으로 실행할 API 그룹을 선택할 수 있게 했습니다.</p>
+        <h2 id="version">branch·tag가 아니라 full commit SHA 기록</h2>
+        <p>branch와 이동 가능한 tag는 같은 이름이 다른 commit을 가리킬 수 있으므로 불변 버전이 아닙니다. 사용자가 branch나 tag를 입력하더라도 실행 전에 full commit SHA로 해석하고, 서버 commit·collection commit·생성기 version·k6 script hash·입력값을 하나의 manifest에 보존해야 같은 실행을 추적할 수 있습니다.</p>
+        <p>현재 workflow에는 이 전체 manifest가 없습니다. 따라서 목표 구조를 적용하기 전까지는 실행에 사용한 checked-in script의 repository commit을 기준으로 범위를 해석해야 합니다.</p>
+
+        <h2 id="selection">API 그룹 선택은 목표 입력으로 분리</h2>
+        <p>모든 요청을 항상 실행하면 테스트 목적과 데이터 영향 범위가 흐려집니다. 목표 설계에서는 조회 중심 기본 흐름과 비용이 큰 기능, 데이터를 변경하는 기능을 구분합니다.</p>
         <ul>
-          <li>기본 사용자 흐름에 가까운 요청 그룹은 기본 실행 대상</li>
-          <li>관리자 기능, 파일 업로드, 채팅처럼 비용이 크거나 조건이 까다로운 그룹은 기본 비활성화</li>
-          <li>삭제, 탈퇴, 차단처럼 데이터를 변경하거나 되돌리기 어려운 요청은 별도 opt-in</li>
+          <li>기본 사용자 흐름은 명시적 allowlist로 선택</li>
+          <li>관리자 기능·파일 업로드·외부 과금 API는 기본 비활성화</li>
+          <li>삭제·탈퇴·차단처럼 되돌리기 어려운 요청은 별도 opt-in</li>
+          <li>그룹 미분류 요청은 자동 포함하지 않고 생성 단계에서 실패 또는 경고</li>
         </ul>
-        <p>생성기는 요청 컬렉션의 메타 정보와 HTTP 정의, header, body 블록을 읽고 선택된 그룹에 해당하는 요청만 k6 스크립트에 포함합니다. 요청 본문은 JSON뿐 아니라 text, XML, multipart form까지 다룰 수 있게 했습니다.</p>
+        <p>이 분류와 생성기는 아직 구현되지 않았습니다. 실제 적용 시에는 요청 간 동적 ID·인증 token·데이터 준비와 정리 순서도 컬렉션만으로 표현 가능한지 검증해야 합니다.</p>
 
-        <h2 id="safety">선택된 요청과 스킵된 요청을 남기기</h2>
-        <p>부하 테스트에서 중요한 것은 “실행했다”가 아니라 “무엇을 실행했는지 설명할 수 있다”는 점입니다. 생성 단계에서 선택된 요청과 제외된 요청 목록을 요약으로 남기도록 했습니다.</p>
-        <p>이 요약은 두 가지 용도로 쓰입니다. 첫째, 테스트 결과를 해석할 때 어떤 API 그룹이 포함됐는지 확인할 수 있습니다. 둘째, 새 요청이 컬렉션에 추가됐지만 그룹 분류가 빠져 실행되지 않는 상황을 발견할 수 있습니다.</p>
-        <div class="callout"><strong>안전장치</strong>위험한 요청은 기본적으로 제외하고, 실행자가 명시적으로 켠 경우에만 포함합니다. 부하 테스트 자동화가 운영 데이터를 망가뜨리면 자동화가 아니라 사고가 됩니다.</div>
+        <h2 id="safety">구현 전에 필요한 통과 조건</h2>
+        <ul>
+          <li><strong>성공 판정</strong> — 핵심 요청마다 status와 응답 조건을 검사하고, 오류율·응답 시간 threshold를 넘으면 k6가 non-zero로 종료되어야 합니다.</li>
+          <li><strong>secret 처리</strong> — 계정·password·token을 script나 summary에 넣지 않고 실행 환경에서 주입하며 log에서 마스킹해야 합니다.</li>
+          <li><strong>대상 제한</strong> — 허용한 비운영 domain만 실행하고 URL을 입력받는다면 allowlist로 검증해야 합니다.</li>
+          <li><strong>부하 제한</strong> — VU·duration·iteration의 상한과 승인 절차를 두고 외부 API timeout·rate limit을 반영해야 합니다.</li>
+          <li><strong>추적성</strong> — 선택·제외·실패 요청과 정확한 commit SHA, script hash, threshold, 실행 입력을 manifest로 남겨야 합니다.</li>
+        </ul>
+        <div class="callout"><strong>적용 기준</strong>생성기의 존재보다 실패 요청을 성공으로 오인하지 않고, 어떤 코드와 요청 집합이 실행됐는지 재현할 수 있는지가 먼저입니다.</div>
 
-        <h2 id="lesson">배운 점: 테스트 코드도 중복된 명세가 될 수 있음</h2>
-        <p>이번 작업의 핵심은 k6 스크립트를 더 많이 작성하는 것이 아니었습니다. API 요청 예시가 이미 관리되는 곳이 있다면, 부하 테스트는 그 정보를 재사용하는 편이 유지보수에 강합니다.</p>
-        <p>서버 API, 요청 컬렉션, 부하 테스트 스크립트가 각각 따로 진화하면 언젠가 서로 어긋납니다. 요청 컬렉션을 단일 출처로 두고 실행 시점에 k6 스크립트를 생성하자, 부하 테스트는 “별도로 관리해야 하는 코드”에서 “현재 API 요청 예시를 실행 가능한 부하로 변환하는 과정”에 가까워졌습니다.</p>
-        <p>가장 큰 배움은 테스트 자동화에서도 fallback을 줄이는 것이 오히려 신뢰도를 높일 수 있다는 점이었습니다. 기준이 하나일 때 실패도 명확해지고, 고쳐야 할 위치도 분명해집니다.</p>
+        <h2 id="lesson">정리: 구현 결과가 아니라 다음 설계의 기준</h2>
+        <p>요청 컬렉션을 단일 출처로 쓰는 접근은 중복을 줄일 수 있지만, 현재 저장소에는 이 구조가 구현되어 있지 않습니다. 지금 확인할 수 있는 성과는 checked-in script를 원격 부하 발생기에서 실행하는 흐름이며, 생성·그룹 선택·threshold·manifest는 후속 설계 범위입니다.</p>
+        <p>따라서 이 글은 완료 보고가 아니라 현재 구현과 목표 상태 사이의 차이를 공개한 설계 문서로 유지합니다. 실제 구현 뒤에는 generator unit test, fixture별 변환 검증, k6 실패 전파와 비운영 환경 smoke test 결과를 근거로 상태를 갱신해야 합니다.</p>
         <a class="next-post" href="./terraform-monitoring.html"><span>NEXT POST</span><strong>수동 AWS 인프라에서 Terraform으로 →</strong></a>
       </article>
     </div>

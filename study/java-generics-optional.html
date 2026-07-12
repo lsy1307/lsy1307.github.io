@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -27,7 +27,7 @@
       <p class="eyebrow">Java basic · Type safety</p>
       <h1>Generics와 Optional을 안전하게 쓰는 법</h1>
       <p class="article-lead">Generics는 타입 실수를 컴파일 시점에 잡기 위한 장치이고, Optional은 값이 없을 수 있음을 반환 타입에 드러내는 장치입니다.</p>
-      <div class="article-meta"><span>STUDY NOTE</span><span>6 MIN READ</span><span>JAVA</span></div>
+      <div class="article-meta"><span>STUDY NOTE</span><span>UPDATED 2026.07</span><span>JAVA 17+</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#generic">Generics</a><a href="#wildcard">wildcard</a><a href="#optional">Optional</a><a href="#anti-pattern">주의할 점</a></aside>
@@ -46,7 +46,7 @@ String first = names.get(0); // 별도 casting 필요 없음</code></pre>
 }</code></pre>
 
         <h2 id="wildcard">wildcard는 읽기와 쓰기 방향을 나눌 때 사용</h2>
-        <p><code>? extends T</code>는 T의 하위 타입을 읽는 생산자에 가깝고, <code>? super T</code>는 T를 넣는 소비자에 가깝습니다. 자주 외우는 문장으로는 PECS가 있습니다. Producer Extends, Consumer Super입니다.</p>
+        <p><code>? extends T</code>는 T의 하위 타입을 읽는 생산자에 가깝고, <code>? super T</code>는 T를 넣는 소비자에 가깝습니다. 자주 외우는 문장으로는 PECS가 있습니다. Producer Extends, Consumer Super입니다. <code>List&lt;? extends Number&gt;</code>에서는 구체 타입을 알 수 없어 <code>null</code> 외의 값을 안전하게 추가할 수 없다는 점도 함께 기억합니다.</p>
         <pre><code>void printAll(List&lt;? extends Number&gt; numbers) {
     for (Number number : numbers) {
         System.out.println(number);
@@ -64,9 +64,10 @@ Member member = memberRepository.findByEmail(email)
 
         <h2 id="anti-pattern">주의할 점</h2>
         <ul>
-          <li>Entity 필드에 <code>Optional</code>을 두지 않습니다. 필드는 실제 값이나 null로 두고, 반환 메서드에서 Optional을 고려합니다.</li>
+          <li>JPA Entity 필드나 직렬화 DTO에 <code>Optional</code>을 두는 것은 피합니다. 여러 프레임워크의 매핑·직렬화 규칙과 맞지 않을 수 있으므로 실제 값 또는 null을 저장하고, 조회 메서드의 반환 타입에서 Optional을 고려합니다.</li>
           <li>메서드 파라미터로 Optional을 받는 것은 보통 어색합니다. 호출자가 값을 꺼내서 넘기거나 메서드를 분리하는 편이 낫습니다.</li>
           <li><code>Optional.get()</code>만 바로 호출하면 null check보다 나을 게 없습니다. <code>orElseThrow</code>, <code>map</code>, <code>filter</code>로 의도를 드러냅니다.</li>
+          <li>기본값 생성 비용이 있다면 값이 있어도 실행되는 <code>orElse</code>보다 필요한 때만 실행되는 <code>orElseGet</code>을 검토합니다.</li>
         </ul>
         <a class="next-post" href="./java-stream-lambda.html"><span>NEXT NOTE</span><strong>Lambda와 Stream을 읽기 좋게 쓰는 기준 →</strong></a>
       </article>

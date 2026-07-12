@@ -10,14 +10,14 @@
   <a class="skip-link" href="#article">본문으로 이동</a>
   <header class="site-header">
     <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
+      <a class="brand" href="../index.html"><span class="brand-mark"></span>lsy1307 · TECH BLOG</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">메뉴</button>
       <div class="nav-links" id="nav-links">
-        <a href="/index.html#writing">Writing</a>
-        <a href="/spring-study.html">Study</a>
-        <a href="/index.html#projects">Projects</a>
-        <a href="/index.html#about">About</a>
-        <a href="/index.html#contact">Contact</a>
+        <a href="../index.html#writing">Writing</a>
+        <a href="../spring-study.html">Study</a>
+        <a href="../index.html#projects">Projects</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Contact</a>
       </div>
     </nav>
   </header>
@@ -27,7 +27,7 @@
       <p class="eyebrow">Spring basic · IoC DI</p>
       <h1>Spring IoC와 DI가 하는 일</h1>
       <p class="article-lead">Spring을 쓰면 객체를 직접 조립하는 코드가 줄어듭니다. 핵심은 객체 생성과 연결 책임을 애플리케이션 코드 밖으로 옮기는 것입니다.</p>
-      <div class="article-meta"><span>STUDY NOTE</span><span>6 MIN READ</span><span>SPRING</span></div>
+      <div class="article-meta"><span>UPDATED 2026.07</span><span>SPRING 6</span><span>BOOT 3</span></div>
     </header>
     <div class="article-layout">
       <aside class="toc"><strong>CONTENTS</strong><a href="#ioc">IoC</a><a href="#bean">Bean</a><a href="#di">DI</a><a href="#constructor">생성자 주입</a><a href="#test">테스트</a></aside>
@@ -35,21 +35,25 @@
         <h2 id="ioc">IoC: 제어의 흐름을 뒤집기</h2>
         <p>일반적인 Java 코드에서는 필요한 객체를 직접 생성합니다. 하지만 Spring에서는 객체 생성과 의존성 연결을 Spring Container가 담당합니다. 이처럼 객체를 언제 만들고 어떻게 연결할지의 제어권이 프레임워크로 넘어가는 것을 IoC라고 부릅니다.</p>
         <pre><code>// 직접 조립
-MemberRepository repository = new MemberRepository();
+MemberRepository repository = new InMemoryMemberRepository();
 MemberService service = new MemberService(repository);
 
 // Spring 사용
 @Service
 class MemberService {
     private final MemberRepository repository;
+
+    MemberService(MemberRepository repository) {
+        this.repository = repository;
+    }
 }</code></pre>
 
         <h2 id="bean">Bean: Spring이 관리하는 객체</h2>
-        <p>Spring Container가 생성하고 관리하는 객체를 Bean이라고 합니다. <code>@Component</code>, <code>@Service</code>, <code>@Repository</code>, <code>@Controller</code> 같은 어노테이션을 붙이면 컴포넌트 스캔을 통해 Bean으로 등록될 수 있습니다.</p>
+        <p>Spring Container가 생성하고 관리하는 객체를 Bean이라고 합니다. <code>@Component</code>, <code>@Service</code>, <code>@Repository</code>, <code>@Controller</code> 같은 어노테이션을 붙인 클래스는 컴포넌트 스캔 범위 안에 있을 때 Bean 후보로 등록됩니다. Spring Boot에서는 보통 <code>@SpringBootApplication</code>이 있는 패키지와 그 하위가 기본 범위입니다.</p>
         <ul>
           <li><code>@Controller</code>: HTTP 요청을 받는 계층</li>
           <li><code>@Service</code>: 비즈니스 흐름을 처리하는 계층</li>
-          <li><code>@Repository</code>: 데이터 접근 계층</li>
+          <li><code>@Repository</code>: 데이터 접근 계층이며 지원되는 기술에서 예외 변환의 대상이 될 수 있음</li>
           <li><code>@Configuration</code> + <code>@Bean</code>: 직접 생성 로직이 필요한 Bean 등록</li>
         </ul>
 
@@ -63,11 +67,11 @@ class OrderService {
         this.orderRepository = orderRepository;
     }
 }</code></pre>
-        <p>이렇게 하면 <code>OrderService</code>는 <code>OrderRepository</code> 구현체를 직접 만들지 않아도 됩니다. 저장소 구현을 바꾸거나 테스트 대역을 넣을 때 변경 범위가 줄어듭니다.</p>
+        <p>이렇게 하면 <code>OrderService</code>는 <code>OrderRepository</code> 구현체를 직접 만들지 않아도 됩니다. 저장소 구현을 바꾸거나 테스트 대역을 넣을 때 변경 범위가 줄어듭니다. 같은 타입의 Bean이 여러 개라면 <code>@Primary</code>나 <code>@Qualifier</code> 등 선택 기준이 추가로 필요합니다.</p>
 
         <h2 id="constructor">생성자 주입을 기본으로 두는 이유</h2>
         <p>생성자 주입은 객체가 생성될 때 필요한 의존성이 반드시 들어오도록 만듭니다. 필드 주입보다 테스트하기 쉽고, 의존성이 빠졌을 때 애플리케이션 시작 시점에 빨리 실패합니다.</p>
-        <div class="callout"><strong>기준</strong>필수 의존성은 생성자 주입을 사용합니다. 선택적인 값이나 설정은 상황에 따라 메서드 주입, 설정 프로퍼티 등을 사용할 수 있지만, 서비스의 핵심 협력 객체는 생성자에서 드러나는 편이 읽기 좋습니다.</div>
+        <div class="callout"><strong>기준</strong>필수 협력 객체는 생성자 주입을 사용합니다. 환경 설정은 타입이 있는 Configuration Properties로 분리할 수 있습니다. 선택 의존성이 정말 필요한 경우에도 null 가능한 필드 주입보다 부재의 의미와 기본 동작을 명시합니다.</div>
 
         <h2 id="test">테스트가 쉬워지는 구조</h2>
         <p>DI를 사용하면 테스트에서 가짜 구현체를 넣어 서비스 로직만 확인할 수 있습니다. 즉, 객체 생성 방식이 테스트 가능성과 직접 연결됩니다.</p>
